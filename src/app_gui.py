@@ -37,6 +37,7 @@ class CVCard(ft.Card):
         # Buat konten kartu
         self._build_content()
     
+
     def _build_content(self):
         # Buat daftar kata kunci yang cocok
         keyword_widgets = []
@@ -45,7 +46,7 @@ class CVCard(ft.Card):
                 ft.Text(
                     f"{keyword}: {count} occurrence{'s' if count > 1 else ''}",
                     size=12,
-                    color=ft.Colors.BLUE_GREY_600
+                    color=ft.Colors.BLUE_800  # Changed from BLUE_GREY_600 to deeper blue
                 )
             )
         
@@ -55,12 +56,20 @@ class CVCard(ft.Card):
                 ft.TextButton(
                     text="Summary",
                     icon=ft.Icons.INFO,
-                    on_click=lambda _: self.on_summary_click(self.applicant_data.id)
+                    on_click=lambda _: self.on_summary_click(self.applicant_data.id),
+                    style=ft.ButtonStyle(
+                        color=ft.Colors.INDIGO_700,
+                        bgcolor=ft.Colors.INDIGO_50
+                    )
                 ),
                 ft.TextButton(
                     text="View CV",
                     icon=ft.Icons.VISIBILITY,
-                    on_click=lambda _: self.on_view_cv_click(self.applicant_data.cv_path)
+                    on_click=lambda _: self.on_view_cv_click(self.applicant_data.cv_path),
+                    style=ft.ButtonStyle(
+                        color=ft.Colors.TEAL_700,
+                        bgcolor=ft.Colors.TEAL_50
+                    )
                 )
             ],
             alignment=ft.MainAxisAlignment.END,
@@ -76,21 +85,26 @@ class CVCard(ft.Card):
                     ft.Text(
                         self.applicant_data.name,
                         weight=ft.FontWeight.BOLD,
-                        size=18
+                        size=18,
+                        color=ft.Colors.GREY_900  # Added for better contrast
                     ),
                     ft.Text(
                         f"Matched Keywords: {self.applicant_data.total_matches}",
                         size=14,
-                        color=ft.Colors.GREEN_700
+                        color=ft.Colors.EMERALD_700,  # Changed from GREEN_700 to more vibrant
+                        weight=ft.FontWeight.W_600
                     ),
-                    ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
+                    ft.Divider(height=1, color=ft.Colors.GREY_300),  # Changed from OUTLINE_VARIANT
                     ft.Column(
                         spacing=4,
                         controls=keyword_widgets
                     ),
                     action_buttons
                 ]
-            )
+            ),
+            bgcolor=ft.Colors.WHITE,  # Added white background
+            border_radius=12,
+            border=ft.border.all(1, ft.Colors.GREY_200)
         )
 
 # Kelas utama aplikasi ATS
@@ -164,13 +178,24 @@ class ATSApp:
             expand=True,
             value=self.search_keywords,
             on_change=self.on_keywords_change,
-            on_submit=self.on_search_click
+            on_submit=self.on_search_click,
+            border_color=ft.Colors.BLUE_400,
+            focused_border_color=ft.Colors.BLUE_600,
+            label_style=ft.TextStyle(color=ft.Colors.BLUE_700)
         )
         
         algorithm_radio = ft.RadioGroup(
             content=ft.Row([
-                ft.Radio(value="KMP", label="Knuth-Morris-Pratt (KMP)"),
-                ft.Radio(value="BM", label="Boyer-Moore (BM)")
+                ft.Radio(
+                    value="KMP", 
+                    label="Knuth-Morris-Pratt (KMP)",
+                    active_color=ft.Colors.PURPLE_600
+                ),
+                ft.Radio(
+                    value="BM", 
+                    label="Boyer-Moore (BM)",
+                    active_color=ft.Colors.PURPLE_600
+                )
             ]),
             value=self.selected_algorithm,
             on_change=self.on_algorithm_change
@@ -186,7 +211,9 @@ class ATSApp:
             ],
             value=self.top_matches,
             width=150,
-            on_change=self.on_top_matches_change
+            on_change=self.on_top_matches_change,
+            border_color=ft.Colors.INDIGO_400,
+            focused_border_color=ft.Colors.INDIGO_600
         )
         
         search_button = ft.ElevatedButton(
@@ -194,7 +221,10 @@ class ATSApp:
             icon=ft.Icons.SEARCH,
             on_click=self.on_search_click,
             style=ft.ButtonStyle(
-                shape=ft.StadiumBorder()
+                shape=ft.StadiumBorder(),
+                bgcolor=ft.Colors.BLUE_600,  # Changed from default
+                color=ft.Colors.WHITE,
+                elevation=4
             ),
             disabled=self.is_searching
         )
@@ -203,20 +233,34 @@ class ATSApp:
         progress_indicator = ft.ProgressRing(
             visible=self.is_searching,
             width=30,
-            height=30
+            height=30,
+            color=ft.Colors.BLUE_600
         )
         
         # Summary result section
         summary_section = ft.Container(
             content=ft.Column([
-                ft.Text("Search Results Summary:", weight=ft.FontWeight.BOLD),
-                ft.Text(f"Exact Match Time: {self.exact_match_time}", data="exact_time"),
-                ft.Text(f"Fuzzy Match Time: {self.fuzzy_match_time}", data="fuzzy_time")
+                ft.Text(
+                    "Search Results Summary:", 
+                    weight=ft.FontWeight.BOLD,
+                    color=ft.Colors.GREY_800
+                ),
+                ft.Text(
+                    f"Exact Match Time: {self.exact_match_time}", 
+                    data="exact_time",
+                    color=ft.Colors.GREEN_700
+                ),
+                ft.Text(
+                    f"Fuzzy Match Time: {self.fuzzy_match_time}", 
+                    data="fuzzy_time",
+                    color=ft.Colors.ORANGE_700
+                )
             ]),
             visible=bool(self.exact_match_time or self.fuzzy_match_time),
-            padding=10,
-            border_radius=8,
-            bgcolor=ft.Colors.BLUE_GREY_50
+            padding=15,
+            border_radius=12,
+            bgcolor=ft.Colors.BLUE_GREY_50,  # Changed from BLUE_GREY_50
+            border=ft.border.all(1, ft.Colors.BLUE_GREY_200)
         )
         
         # Results container
@@ -237,9 +281,9 @@ class ATSApp:
                 ft.Container(
                     content=ft.Text(
                         "CV Analyzer App",
-                        size=28,
+                        size=32,  # Increased from 28
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.PRIMARY
+                        color=ft.Colors.INDIGO_800  # Changed from PRIMARY
                     ),
                     alignment=ft.alignment.center,
                     padding=20
@@ -250,7 +294,11 @@ class ATSApp:
                     content=ft.Column([
                         keywords_field,
                         ft.Row([
-                            ft.Text("Search Algorithm:", weight=ft.FontWeight.BOLD),
+                            ft.Text(
+                                "Search Algorithm:", 
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.Colors.GREY_800
+                            ),
                         ]),
                         algorithm_radio,
                         ft.Row([
@@ -261,9 +309,15 @@ class ATSApp:
                         ])
                     ]),
                     padding=20,
-                    border_radius=12,
-                    bgcolor=ft.Colors.ON_SURFACE_VARIANT,
-                    border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT)
+                    border_radius=16,  # Increased from 12
+                    bgcolor=ft.Colors.WHITE,  # Changed from ON_SURFACE_VARIANT
+                    border=ft.border.all(2, ft.Colors.GREY_200),  # Thicker border
+                    shadow=ft.BoxShadow(
+                        spread_radius=1,
+                        blur_radius=4,
+                        color=ft.Colors.GREY_300,
+                        offset=ft.Offset(0, 2)
+                    )
                 ),
                 
                 # Summary section
@@ -274,17 +328,21 @@ class ATSApp:
                     content=ft.Column([
                         ft.Text(
                             f"Search Results ({len(self.search_results)} found)",
-                            size=18,
-                            weight=ft.FontWeight.BOLD
-                        ) if self.search_results else ft.Text("No results to display"),
-                        ft.Divider(),
+                            size=20,  # Increased from 18
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.BLUE_GREY_800
+                        ) if self.search_results else ft.Text(
+                            "No results to display",
+                            color=ft.Colors.GREY_600
+                        ),
+                        ft.Divider(color=ft.Colors.GREY_300),
                         results_container if self.search_results else ft.Container()
                     ]),
                     expand=True,
-                    padding=10,
-                    border_radius=12,
-                    bgcolor=ft.Colors.ON_SURFACE_VARIANT,
-                    border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT)
+                    padding=15,  # Increased from 10
+                    border_radius=16,  # Increased from 12
+                    bgcolor=ft.Colors.GREY_50,  # Changed from ON_SURFACE_VARIANT
+                    border=ft.border.all(1, ft.Colors.GREY_200)
                 )
             ]
         )
@@ -294,9 +352,10 @@ class ATSApp:
             [main_content],
             appbar=ft.AppBar(
                 title=ft.Text("CV Analyzer"),
-                bgcolor=ft.Colors.PRIMARY,
-                color=ft.Colors.ON_PRIMARY
-            )
+                bgcolor=ft.Colors.INDIGO_700,  # Changed from PRIMARY
+                color=ft.Colors.WHITE
+            ),
+            bgcolor=ft.Colors.GREY_100  # Added background color
         )
     
     def build_summary_view(self, applicant_id: int) -> ft.View:
@@ -328,21 +387,27 @@ class ATSApp:
         # Skills section
         skills_section = ft.Container(
             content=ft.Column([
-                ft.Text("Skills", size=16, weight=ft.FontWeight.BOLD),
+                ft.Text(
+                    "Skills", 
+                    size=18,  # Increased from 16
+                    weight=ft.FontWeight.BOLD,
+                    color=ft.Colors.INDIGO_800
+                ),
                 ft.Wrap(
                     controls=[
                         ft.Chip(
-                            label=ft.Text(skill),
-                            bgcolor=ft.Colors.BLUE_100,
-                            color=ft.Colors.BLUE_800
+                            label=ft.Text(skill, color=ft.Colors.WHITE),
+                            bgcolor=ft.Colors.BLUE_600,  # Changed from BLUE_100
+                            selected_color=ft.Colors.BLUE_700
                         ) for skill in (applicant.skills or ["Python", "Data Analysis", "Machine Learning"])
                     ],
                     spacing=8
                 )
             ]),
-            padding=10,
-            border_radius=8,
-            bgcolor=ft.Colors.BLUE_50
+            padding=15,  # Increased from 10
+            border_radius=12,
+            bgcolor=ft.Colors.BLUE_50,
+            border=ft.border.all(1, ft.Colors.BLUE_200)
         )
         
         # Job History section
@@ -352,7 +417,9 @@ class ATSApp:
                 {"position": "Data Scientist", "company": "Tech Corp", "period": "2022-2024"},
                 {"position": "Junior Analyst", "company": "Analytics Inc", "period": "2020-2022"}
             ],
-            "position", "company", "period"
+            "position", "company", "period",
+            ft.Colors.EMERALD_50,  # Background color
+            ft.Colors.EMERALD_800  # Title color
         )
         
         # Education section
@@ -362,7 +429,9 @@ class ATSApp:
                 {"degree": "Master of Data Science", "institution": "University ABC", "period": "2018-2020"},
                 {"degree": "Bachelor of Computer Science", "institution": "University XYZ", "period": "2014-2018"}
             ],
-            "degree", "institution", "period"
+            "degree", "institution", "period",
+            ft.Colors.PURPLE_50,  # Background color
+            ft.Colors.PURPLE_800  # Title color
         )
         
         # View CV button
@@ -371,8 +440,10 @@ class ATSApp:
             icon=ft.Icons.PICTURE_AS_PDF_OUTLINED,
             on_click=lambda _: self.on_view_cv_click(applicant.cv_path),
             style=ft.ButtonStyle(
-                bgcolor=ft.Colors.PRIMARY,
-                color=ft.Colors.ON_PRIMARY
+                bgcolor=ft.Colors.TEAL_600,  # Changed from PRIMARY
+                color=ft.Colors.WHITE,
+                elevation=6,
+                shape=ft.StadiumBorder()
             )
         )
         
@@ -384,14 +455,25 @@ class ATSApp:
                 # Personal Information
                 ft.Container(
                     content=ft.Column([
-                        ft.Text("Personal Information", size=20, weight=ft.FontWeight.BOLD),
-                        ft.Divider(),
+                        ft.Text(
+                            "Personal Information", 
+                            size=22,  # Increased from 20
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.BLUE_GREY_800
+                        ),
+                        ft.Divider(color=ft.Colors.GREY_300),
                         *info_rows
                     ]),
                     padding=20,
-                    border_radius=12,
-                    bgcolor=ft.Colors.ON_SURFACE_VARIANT,
-                    border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT)
+                    border_radius=16,  # Increased from 12
+                    bgcolor=ft.Colors.WHITE,  # Changed from ON_SURFACE_VARIANT
+                    border=ft.border.all(1, ft.Colors.GREY_200),
+                    shadow=ft.BoxShadow(
+                        spread_radius=1,
+                        blur_radius=4,
+                        color=ft.Colors.GREY_300,
+                        offset=ft.Offset(0, 2)
+                    )
                 ),
                 
                 # Skills
@@ -417,54 +499,89 @@ class ATSApp:
             [main_content],
             appbar=ft.AppBar(
                 title=ft.Text("Applicant Summary"),
-                bgcolor=ft.Colors.PRIMARY,
-                color=ft.Colors.ON_PRIMARY,
+                bgcolor=ft.Colors.INDIGO_700,  # Changed from PRIMARY
+                color=ft.Colors.WHITE,
                 leading=ft.IconButton(
                     ft.Icons.ARROW_BACK,
                     on_click=lambda _: self.page.go("/search"),
-                    tooltip="Back to Search Results"
+                    tooltip="Back to Search Results",
+                    icon_color=ft.Colors.WHITE
                 )
-            )
+            ),
+            bgcolor=ft.Colors.GREY_100  # Added background color
         )
     
     def create_info_row(self, label: str, value: str) -> ft.Row:
         """Helper untuk membuat baris informasi"""
         return ft.Row([
             ft.Container(
-                content=ft.Text(f"{label}:", weight=ft.FontWeight.BOLD),
+                content=ft.Text(
+                    f"{label}:", 
+                    weight=ft.FontWeight.BOLD,
+                    color=ft.Colors.GREY_800
+                ),
                 width=120
             ),
-            ft.Text(value, expand=True)
+            ft.Text(
+                value, 
+                expand=True,
+                color=ft.Colors.BLUE_GREY_600
+            )
         ])
     
     def create_history_section(self, title: str, items: List[Dict], 
-                             field1: str, field2: str, field3: str) -> ft.Container:
+                             field1: str, field2: str, field3: str,
+                             bg_color=ft.Colors.GREEN_50,
+                             title_color=ft.Colors.GREEN_800) -> ft.Container:
         """Helper untuk membuat section riwayat"""
         history_items = []
         for item in items:
             history_items.append(
                 ft.Container(
                     content=ft.Column([
-                        ft.Text(item.get(field1, ""), weight=ft.FontWeight.BOLD),
-                        ft.Text(item.get(field2, ""), color=ft.Colors.BLUE_GREY_600),
-                        ft.Text(item.get(field3, ""), size=12, color=ft.Colors.BLUE_GREY_500)
+                        ft.Text(
+                            item.get(field1, ""), 
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.BLUE_GREY_800
+                        ),
+                        ft.Text(
+                            item.get(field2, ""), 
+                            color=ft.Colors.BLUE_GREY_600
+                        ),
+                        ft.Text(
+                            item.get(field3, ""), 
+                            size=12, 
+                            color=ft.Colors.SLATE_500
+                        )
                     ]),
-                    padding=10,
+                    padding=12,  # Increased from 10
                     margin=5,
-                    border_radius=8,
+                    border_radius=10,  # Increased from 8
                     bgcolor=ft.Colors.WHITE,
-                    border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT)
+                    border=ft.border.all(1, ft.Colors.GREY_200),
+                    shadow=ft.BoxShadow(
+                        spread_radius=0.5,
+                        blur_radius=2,
+                        color=ft.Colors.GREY_200,
+                        offset=ft.Offset(0, 1)
+                    )
                 )
             )
         
         return ft.Container(
             content=ft.Column([
-                ft.Text(title, size=16, weight=ft.FontWeight.BOLD),
+                ft.Text(
+                    title, 
+                    size=18,  # Increased from 16
+                    weight=ft.FontWeight.BOLD,
+                    color=title_color
+                ),
                 ft.Column(controls=history_items)
             ]),
-            padding=10,
-            border_radius=8,
-            bgcolor=ft.Colors.GREEN_50
+            padding=15,  # Increased from 10
+            border_radius=12,  # Increased from 8
+            bgcolor=bg_color,
+            border=ft.border.all(1, ft.Colors.GREY_200)
         )
     
     # Event Handlers
