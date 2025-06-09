@@ -18,6 +18,8 @@ class ApplicantData:
     birthdate: str
     matched_keywords: Dict[str, int]
     total_matches: int
+    application_role: Optional[str] = None
+    summary: Optional[str] = None
     skills: List[str] = None
     job_history: List[Dict] = None
     education: List[Dict] = None
