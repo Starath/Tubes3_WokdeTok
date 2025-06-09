@@ -5,11 +5,12 @@ from typing import List, Dict, Optional, Deque
 
 class TrieNode:
     """
-    Kelas untuk merepresentasikan sebuah node dalam Trie.
+    Represents a node in the Trie.
 
-    - children: Menggunakan dictionary untuk efisiensi memori (Kriteria 1.2) 
-    - output: Menyimpan daftar kata kunci yang berakhir di node ini (Kriteria 1.1) 
-    - failure: Tautan ke node lain saat terjadi mismatch (Kriteria 2)
+    Attributes:
+        children (Dict[str, TrieNode]): A dictionary of child nodes.
+        failure (Optional['TrieNode']): The failure link for the Aho-Corasick algorithm.
+        output (List[str]): A list of keywords ending at this node.
     """
     def __init__(self):
         self.children: Dict[str, TrieNode] = {}
@@ -18,14 +19,14 @@ class TrieNode:
 
 class AhoCorasick:
     """
-    Implementasi lengkap dari algoritma Aho-Corasick.
+    Implements the Aho-Corasick algorithm.
     """
     def __init__(self, keywords: List[str]):
         """
-        Inisialisasi automatas Aho-Corasick dengan daftar kata kunci.
-        
+        Initializes the Aho-Corasick automaton.
+
         Args:
-            keywords: Daftar kata kunci (string) untuk dicari.
+            keywords: A list of keyword strings to search for.
         """
         self.root = TrieNode()
         self._build_trie(keywords)
@@ -33,7 +34,10 @@ class AhoCorasick:
 
     def _build_trie(self, keywords: List[str]):
         """
-        Membangun struktur Trie dari daftar kata kunci yang diberikan.
+        Builds the Trie data structure from a list of keywords.
+
+        Args:
+            keywords: The list of keywords to be added to the Trie.
         """
         for keyword in keywords:
             processed_keyword = keyword.lower()
@@ -44,7 +48,7 @@ class AhoCorasick:
 
     def _build_failure_links(self):
         """
-        Membangun tautan kegagalan (failure links) menggunakan Breadth-First Search (BFS).
+        Constructs the failure links for each node in the Trie using a breadth-first search.
         """
         queue: Deque[TrieNode] = deque()
         
@@ -72,14 +76,14 @@ class AhoCorasick:
 
     def search(self, text: str) -> Dict[str, List[int]]:
         """
-        Mencari semua kemunculan kata kunci dalam teks yang diberikan.
-        
+        Finds all occurrences of the keywords in a given text.
+
         Args:
-            text: String input untuk dicari.
-            
+            text: The main string to search within.
+
         Returns:
-            Kamus yang memetakan setiap kata kunci yang ditemukan ke daftar
-            indeks akhir kemunculannya dalam teks.
+            A dictionary mapping each found keyword to a list of its starting indices
+            in the text.
         """
         processed_text = text.lower()
         results: Dict[str, List[int]] = {}
@@ -103,6 +107,7 @@ class AhoCorasick:
         
         return results
 
+# For testing
 if __name__ == '__main__':
     print("Menjalankan pengujian untuk algoritma Aho-Corasick...")
 
