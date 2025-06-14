@@ -8,6 +8,7 @@ import asyncio
 import time
 
 from algorithm.KMP import kmp_search
+from algorithm.aho_corasick import AhoCorasick
 
 # (Tambahkan di bawah imports)
 # Dummy CV Database (menggantikan data simulasi yang ada)
@@ -272,9 +273,9 @@ class ATSApp:
                     ft.Container(
                         content=ft.RadioGroup(
                             content=ft.Row([
-                                ft.Radio(value="KMP", label="KMP", active_color=ft.Colors.PURPLE_600),
-                                ft.Radio(value="BM", label="BM", active_color=ft.Colors.PURPLE_600),
-                                ft.Radio(value="AC", label="AC", active_color=ft.Colors.PURPLE_600)
+                                ft.Radio(value="KMP", label="Knuth-Morris-Pratt", active_color=ft.Colors.PURPLE_600),
+                                ft.Radio(value="BM", label="Boyer-Moore", active_color=ft.Colors.PURPLE_600),
+                                ft.Radio(value="AC", label="Aho-Corasick", active_color=ft.Colors.PURPLE_600)
                             ], tight=True),
                             value=self.selected_algorithm,
                             on_change=self.on_algorithm_change
@@ -726,6 +727,35 @@ class ATSApp:
                             count = len(matches)
                             matched_keywords_details[keyword.capitalize()] = count
                             total_matches_count += count
+                    
+                    if total_matches_count > 0:
+                        new_applicant = ApplicantData(
+                            id=applicant_data["id"],
+                            name=applicant_data["name"],
+                            cv_path=applicant_data["cv_path"],
+                            email=applicant_data["email"],
+                            phone=applicant_data["phone"],
+                            address=applicant_data["address"],
+                            birthdate=applicant_data["birthdate"],
+                            matched_keywords=matched_keywords_details,
+                            total_matches=total_matches_count
+                        )
+                        found_applicants.append(new_applicant)
+            elif self.selected_algorithm == "AC":
+                ac_automaton = AhoCorasick(keywords)
+                for applicant_data in DUMMY_CV_DATABASE:
+                    cv_text_lower = applicant_data["cv_text"].lower()
+                    
+                    # Perform search using Aho-Corasick
+                    ac_matches = ac_automaton.search(cv_text_lower) 
+                    
+                    matched_keywords_details = {}
+                    total_matches_count = 0
+                    
+                    for keyword, indices in ac_matches.items():
+                        count = len(indices)
+                        matched_keywords_details[keyword.capitalize()] = count
+                        total_matches_count += count
                     
                     if total_matches_count > 0:
                         new_applicant = ApplicantData(
