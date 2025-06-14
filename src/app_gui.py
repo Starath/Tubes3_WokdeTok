@@ -534,6 +534,7 @@ class ATSApp:
             expand=True,
             spacing=20,
             scroll=ft.ScrollMode.AUTO,
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
                 # Personal Information
                 ft.Container(
