@@ -9,6 +9,7 @@ import time
 
 from algorithm.KMP import kmp_search
 from algorithm.aho_corasick import AhoCorasick
+from cv_extractor import extract_info_from_text
 
 # (Tambahkan di bawah imports)
 # Dummy CV Database (menggantikan data simulasi yang ada)
@@ -455,6 +456,16 @@ class ATSApp:
         # NOTE: ONLY FOR SIMULATION
         self.load_applicant_details(applicant)
         # TODO: Use real CV
+        summary_section = ft.Container(
+            content=ft.Column([
+                ft.Text("Summary", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.INDIGO_800),
+                ft.Text(applicant.summary, color=ft.Colors.BLUE_GREY_700, size=14)
+            ]),
+            padding=15,
+            border_radius=12,
+            bgcolor=ft.Colors.INDIGO_50,
+            border=ft.border.all(1, ft.Colors.INDIGO_200)
+        )
 
         # Buat konten ringkasan
         info_rows = [
@@ -559,6 +570,8 @@ class ATSApp:
                         offset=ft.Offset(0, 2)
                     )
                 ),
+                
+                summary_section,
                 
                 # Skills
                 skills_section,
@@ -811,19 +824,25 @@ class ATSApp:
         # applicant.education = extracted_data.get('education', [])
         # Simulasi data untuk demo
 
-        if not applicant.skills:
-            applicant.skills = ["Python", "Data Analysis", "Machine Learning", "SQL", "Statistics"]
+        dummy_record = next((item for item in DUMMY_CV_DATABASE if item["id"] == applicant.id), None)
+
+        if not dummy_record:
+            applicant.summary = "Data pelamar tidak ditemukan."
+            applicant.skills = []
+            applicant.job_history = []
+            applicant.education = []
+            return
+
+        # Get CV Text
+        cv_text = dummy_record.get("cv_text", "")
+
+        extracted_data = extract_info_from_text(cv_text)
         
-        if not applicant.job_history:
-            applicant.job_history = [
-                {"position": "Senior Data Scientist", "company": "Tech Corp", "period": "2022-Present"},
-                {"position": "Data Analyst", "company": "Analytics Inc", "period": "2020-2022"}
-            ]
-        
-        if not applicant.education:
-            applicant.education = [
-                {"degree": "Master of Data Science", "institution": "University ABC", "period": "2018-2020"}
-            ]
+        # Update the applicant data
+        applicant.summary = extracted_data.get("summary", "Summary cant be extracted.")
+        applicant.skills = extracted_data.get("skills", [])
+        applicant.job_history = extracted_data.get("experience", [])
+        applicant.education = extracted_data.get("education", [])
     
     def open_pdf_file(self, cv_path: str):
         """
