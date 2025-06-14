@@ -67,7 +67,7 @@ def extract_experience(text: str) -> List[Dict[str, str]]:
         List[Dict[str, str]]: List of dictionaries containing experience details,
             each with keys: 'position', 'company', 'period'
     """
-    experiences: List[Dict[str, str]] = []    # This pattern is more flexible to handle different formats
+    experiences: List[Dict[str, str]] = []
     pattern = re.compile(
         r'([A-Z][a-zA-Z\s,.-]+(?:developer|engineer|manager|analyst|intern|specialist|scientist))\s*(?:at|@|di)?\s*\n?([A-Z][a-zA-Z\s,.]+ Inc\.|Corp\.|Solutions|Agency|Net)\s*\n?\((.*?)\)',
         re.IGNORECASE | re.MULTILINE
@@ -90,7 +90,7 @@ def extract_education(text: str) -> List[Dict[str, str]]:
 
     Returns:
         List[Dict[str, str]]: List of dictionaries containing education details,
-            each with keys: 'degree', 'institution', 'period'
+                              each with keys: 'degree', 'institution', 'period'
     """
     educations: List[Dict[str, str]] = []    # Looks for degree, major, university, and dates
     pattern = re.compile(
@@ -111,6 +111,13 @@ def extract_info_from_text(full_text: str) -> Dict[str, Any]:
     """
     Takes a CV text string and returns all extracted information in a dictionary format.
     The extracted information includes summary, skills, experience, and education details.
+
+    Args:
+        full_text (str): The complete CV text to extract all information from
+
+    Returns:
+        Dict[str, Any]: Dictionary containing all extracted information 
+                        with keys:'summary', 'skills', 'experience', 'education'
     """
     if not full_text:
         return {
@@ -133,8 +140,15 @@ def extract_info_from_text(full_text: str) -> Dict[str, Any]:
 
 def extract_all_info_from_pdf(pdf_path: str) -> Dict[str, Any]:
     """
-    Call extract_text_from_pdf(pdf_path)
-    Pass the obtained text to extract_info_from_text(text)
+    Main integration function that extracts all information from a PDF file.
+    Combines PDF text extraction and information parsing.
+
+    Args:
+        pdf_path (str): Path to the PDF file to process
+
+    Returns:
+        Dict[str, Any]: Dictionary containing all extracted information
+                        with keys:'summary', 'skills', 'experience', 'education'
     """
     
     return {}
