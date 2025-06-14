@@ -293,7 +293,7 @@ class ATSApp:
                             ft.dropdown.Option("50")
                         ],
                         value=self.top_matches,
-                        width=80,
+                        width=85,
                         on_change=self.on_top_matches_change,
                         dense=True,
                     ),
