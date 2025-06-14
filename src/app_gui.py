@@ -5,6 +5,56 @@ import platform
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 import asyncio
+import time
+
+from algorithm.KMP import kmp_search
+
+# (Tambahkan di bawah imports)
+# Dummy CV Database (menggantikan data simulasi yang ada)
+DUMMY_CV_DATABASE = [
+    {
+        "id": 1,
+        "name": "Farrell Jabaar",
+        "cv_path": "/path/to/farrell_cv.pdf",
+        "email": "farrell.j@email.com", "phone": "081234567890", "address": "Bandung, Indonesia", "birthdate": "2003-05-10",
+        "cv_text": """
+        Farrell Jabaar - Data Scientist
+        Summary: Experienced in Python, SQL, and machine learning.
+        Skills: Python, TensorFlow, PyTorch, SQL, NoSQL, Data Visualization.
+        Experience:
+        - Data Scientist at Tech Corp (2022-Present). Developed machine learning models.
+        - Junior Analyst at Data Inc (2020-2022). Focused on data cleaning with Python.
+        """
+    },
+    {
+        "id": 2,
+        "name": "Aramazaya",
+        "cv_path": "/path/to/aramazaya_cv.pdf",
+        "email": "aramazaya.a@email.com", "phone": "081234567891", "address": "Jakarta, Indonesia", "birthdate": "2004-01-15",
+        "cv_text": """
+        Aramazaya - Full-Stack Developer
+        Summary: Proficient in React and Node.js, with a strong background in web development.
+        Skills: JavaScript, React, Node.js, Express, MongoDB, HTML, CSS.
+        Experience:
+        - Frontend Developer at Web Solutions (2021-Present). Building responsive UIs with React.
+        - Intern at Creative Agency (2020). Worked on various web projects.
+        """
+    },
+    {
+        "id": 3,
+        "name": "Athian Nugraha",
+        "cv_path": "/path/to/athian_cv.pdf",
+        "email": "athian.n@email.com", "phone": "081234567892", "address": "Surabaya, Indonesia", "birthdate": "2004-08-20",
+        "cv_text": """
+        Athian Nugraha - DevOps Engineer
+        Summary: Skilled in cloud infrastructure and automation using Python and Docker.
+        Skills: Python, Docker, Kubernetes, AWS, CI/CD, Terraform, SQL.
+        Experience:
+        - DevOps Engineer at Cloudify (2022-Present). Managing deployments and CI/CD pipelines.
+        - System Administrator at HostNet (2020-2022). Maintained server infrastructure.
+        """
+    }
+]
 
 # Data classes untuk struktur data
 @dataclass
@@ -24,7 +74,7 @@ class ApplicantData:
     job_history: List[Dict] = None
     education: List[Dict] = None
 
-# Kontrol Kustom untuk Kartu CV
+# Kontrol Kustom untuk Kartu CV - Redesigned untuk lebih compact
 class CVCard(ft.Card):
     def __init__(self, applicant_data: ApplicantData, on_summary_click, on_view_cv_click):
         super().__init__()
@@ -32,80 +82,107 @@ class CVCard(ft.Card):
         self.on_summary_click = on_summary_click
         self.on_view_cv_click = on_view_cv_click
         
-        # Styling kartu
-        self.elevation = 4
-        self.margin = ft.margin.symmetric(vertical=5)
+        # Styling kartu - lebih compact
+        self.elevation = 2
+        self.margin = ft.margin.only(bottom=8)
         
         # Buat konten kartu
         self._build_content()
     
-
     def _build_content(self):
-        # Buat daftar kata kunci yang cocok
-        keyword_widgets = []
+        # Buat keyword chips yang lebih compact
+        keyword_chips = []
         for keyword, count in self.applicant_data.matched_keywords.items():
-            keyword_widgets.append(
-                ft.Text(
-                    f"{keyword}: {count} occurrence{'s' if count > 1 else ''}",
-                    size=12,
-                    color=ft.Colors.BLUE_800  # Changed from BLUE_GREY_600 to deeper blue
+            keyword_chips.append(
+                ft.Container(
+                    content=ft.Text(
+                        f"{keyword} ({count})",
+                        size=11,
+                        color=ft.Colors.WHITE,
+                        weight=ft.FontWeight.W_500
+                    ),
+                    padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                    bgcolor=ft.Colors.BLUE_600,
+                    border_radius=12,
+                    margin=ft.margin.only(right=4, bottom=4)
                 )
             )
         
-        # Tombol aksi
+        # Tombol aksi - lebih kecil
         action_buttons = ft.Row(
             controls=[
                 ft.TextButton(
                     text="Summary",
-                    icon=ft.Icons.INFO,
+                    icon=ft.Icons.INFO_OUTLINE,
                     on_click=lambda _: self.on_summary_click(self.applicant_data.id),
                     style=ft.ButtonStyle(
                         color=ft.Colors.INDIGO_700,
-                        bgcolor=ft.Colors.INDIGO_50
+                        padding=ft.padding.symmetric(horizontal=12, vertical=8)
                     )
                 ),
                 ft.TextButton(
                     text="View CV",
-                    icon=ft.Icons.VISIBILITY,
+                    icon=ft.Icons.VISIBILITY_OUTLINED,
                     on_click=lambda _: self.on_view_cv_click(self.applicant_data.cv_path),
                     style=ft.ButtonStyle(
                         color=ft.Colors.TEAL_700,
-                        bgcolor=ft.Colors.TEAL_50
+                        padding=ft.padding.symmetric(horizontal=12, vertical=8)
                     )
                 )
             ],
             alignment=ft.MainAxisAlignment.END,
-            spacing=10
+            spacing=8
         )
         
-        # Konten utama kartu
+        # Konten utama kartu - lebih compact
         self.content = ft.Container(
-            padding=15,
+            padding=12,
             content=ft.Column(
-                spacing=8,
+                spacing=6,
+                tight=True,
                 controls=[
-                    ft.Text(
-                        self.applicant_data.name,
-                        weight=ft.FontWeight.BOLD,
-                        size=18,
-                        color=ft.Colors.GREY_900  # Added for better contrast
+                    # Header row dengan nama dan total matches
+                    ft.Row(
+                        controls=[
+                            ft.Text(
+                                self.applicant_data.name,
+                                weight=ft.FontWeight.BOLD,
+                                size=16,
+                                color=ft.Colors.GREY_900,
+                                expand=True
+                            ),
+                            ft.Container(
+                                content=ft.Text(
+                                    f"{self.applicant_data.total_matches} matches",
+                                    size=12,
+                                    color=ft.Colors.WHITE,
+                                    weight=ft.FontWeight.W_600
+                                ),
+                                padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                                bgcolor=ft.Colors.GREEN_600,
+                                border_radius=10
+                            )
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                     ),
-                    ft.Text(
-                        f"Matched Keywords: {self.applicant_data.total_matches}",
-                        size=14,
-                        color=ft.Colors.GREEN_700,  # Changed from GREEN_700 to more vibrant
-                        weight=ft.FontWeight.W_600
+                    
+                    # Keywords dalam format wrap
+                    ft.Container(
+                        content=ft.Row(
+                            wrap=True,
+                            controls=keyword_chips,
+                            spacing=0,
+                            run_spacing=0
+                        ),
+                        margin=ft.margin.only(top=4, bottom=4)
                     ),
-                    ft.Divider(height=1, color=ft.Colors.GREY_300),  # Changed from OUTLINE_VARIANT
-                    ft.Column(
-                        spacing=4,
-                        controls=keyword_widgets
-                    ),
+                    
+                    # Action buttons
                     action_buttons
                 ]
             ),
-            bgcolor=ft.Colors.WHITE,  # Added white background
-            border_radius=12,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=8,
             border=ft.border.all(1, ft.Colors.GREY_200)
         )
 
@@ -117,7 +194,7 @@ class ATSApp:
         self.page.theme_mode = ft.ThemeMode.LIGHT
         self.page.window_width = 1200
         self.page.window_height = 800
-        self.page.padding = 20
+        self.page.padding = 0  # Remove default padding
         
         # State aplikasi
         self.search_keywords = ""
@@ -152,7 +229,6 @@ class ATSApp:
         if self.page.route == "/search":
             self.page.views.append(self.build_search_view())
         elif self.page.route.startswith("/summary/"):
-            # Extract applicant ID from route
             try:
                 applicant_id = int(self.page.route.split("/")[-1])
                 self.page.views.append(self.build_summary_view(applicant_id))
@@ -172,192 +248,192 @@ class ATSApp:
         self.page.go(top_view.route)
     
     def build_search_view(self) -> ft.View:
-        """Membangun tampilan pencarian utama"""
-        # Kontrol input
-        keywords_field = ft.TextField(
-            label="Keywords",
-            hint_text="e.g., Python, React, SQL",
-            expand=True,
-            value=self.search_keywords,
-            on_change=self.on_keywords_change,
-            on_submit=self.on_search_click,
-            border_color=ft.Colors.BLUE_400,
-            focused_border_color=ft.Colors.BLUE_600,
-            label_style=ft.TextStyle(color=ft.Colors.BLUE_700)
-        )
+        """Membangun tampilan pencarian utama - Redesigned untuk efisiensi ruang"""
         
-        algorithm_radio = ft.RadioGroup(
-            content=ft.Row([
-                ft.Radio(
-                    value="KMP", 
-                    label="Knuth-Morris-Pratt (KMP)",
-                    active_color=ft.Colors.PURPLE_600
-                ),
-                ft.Radio(
-                    value="BM", 
-                    label="Boyer-Moore (BM)",
-                    active_color=ft.Colors.PURPLE_600
-                )
-            ]),
-            value=self.selected_algorithm,
-            on_change=self.on_algorithm_change
-        )
-        
-        top_matches_dropdown = ft.Dropdown(
-            label="Top Matches",
-            options=[
-                ft.dropdown.Option("5"),
-                ft.dropdown.Option("10"),
-                ft.dropdown.Option("20"),
-                ft.dropdown.Option("50")
-            ],
-            value=self.top_matches,
-            width=150,
-            on_change=self.on_top_matches_change,
-            border_color=ft.Colors.INDIGO_400,
-            focused_border_color=ft.Colors.INDIGO_600
-        )
-        
-        search_button = ft.ElevatedButton(
-            text="Search",
-            icon=ft.Icons.SEARCH,
-            on_click=self.on_search_click,
-            style=ft.ButtonStyle(
-                shape=ft.StadiumBorder(),
-                bgcolor=ft.Colors.BLUE_600,  # Changed from default
-                color=ft.Colors.WHITE,
-                elevation=4
-            ),
-            disabled=self.is_searching
-        )
-        
-        # Progress indicator
-        progress_indicator = ft.ProgressRing(
-            visible=self.is_searching,
-            width=30,
-            height=30,
-            color=ft.Colors.BLUE_600
-        )
-        
-        # Summary result section
-        summary_section = ft.Container(
+        # Input section - lebih compact
+        input_section = ft.Container(
             content=ft.Column([
+                # Keywords input
+                ft.TextField(
+                    label="Search Keywords",
+                    hint_text="e.g., Python, React, SQL",
+                    value=self.search_keywords,
+                    on_change=self.on_keywords_change,
+                    on_submit=self.on_search_click,
+                    border_color=ft.Colors.BLUE_400,
+                    focused_border_color=ft.Colors.BLUE_600,
+                    dense=True,
+                    height=50
+                ),
+                
+                # Controls row - algorithm, top matches, and search button
+                ft.Row([
+                    # Algorithm selection
+                    ft.Container(
+                        content=ft.RadioGroup(
+                            content=ft.Row([
+                                ft.Radio(value="KMP", label="KMP", active_color=ft.Colors.PURPLE_600),
+                                ft.Radio(value="BM", label="BM", active_color=ft.Colors.PURPLE_600),
+                                ft.Radio(value="AC", label="AC", active_color=ft.Colors.PURPLE_600)
+                            ], tight=True),
+                            value=self.selected_algorithm,
+                            on_change=self.on_algorithm_change
+                        ),
+                        expand=True
+                    ),
+                    
+                    # Top matches dropdown
+                    ft.Dropdown(
+                        label="Top",
+                        options=[
+                            ft.dropdown.Option("5"),
+                            ft.dropdown.Option("10"),
+                            ft.dropdown.Option("20"),
+                            ft.dropdown.Option("50")
+                        ],
+                        value=self.top_matches,
+                        width=80,
+                        on_change=self.on_top_matches_change,
+                        dense=True,
+                    ),
+                    
+                    # Search button with progress indicator
+                    ft.Container(
+                        content=ft.Stack([
+                            ft.ElevatedButton(
+                                text="Search",
+                                icon=ft.Icons.SEARCH,
+                                on_click=self.on_search_click,
+                                style=ft.ButtonStyle(
+                                    bgcolor=ft.Colors.BLUE_600,
+                                    color=ft.Colors.WHITE,
+                                    shape=ft.RoundedRectangleBorder(radius=8)
+                                ),
+                                disabled=self.is_searching,
+                                height=50,
+                                width=100
+                            ),
+                            ft.ProgressRing(
+                                visible=self.is_searching,
+                                width=20,
+                                height=20,
+                                color=ft.Colors.BLUE_600
+                            )
+                        ]),
+                        alignment=ft.alignment.center
+                    )
+                ], spacing=12)
+            ], spacing=8, tight=True),
+            padding=12,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=8,
+            border=ft.border.all(1, ft.Colors.GREY_300),
+            margin=ft.margin.only(bottom=8)
+        )
+        
+        # Results summary - very compact
+        results_summary = ft.Container(
+            content=ft.Row([
                 ft.Text(
-                    "Search Results Summary:", 
+                    f"Results: {len(self.search_results)} found",
+                    size=14,
                     weight=ft.FontWeight.BOLD,
                     color=ft.Colors.GREY_800
                 ),
+                ft.Container(expand=True),
                 ft.Text(
-                    f"Exact Match Time: {self.exact_match_time}", 
-                    data="exact_time",
+                    f"Time: {self.exact_match_time}" if self.exact_match_time else "",
+                    size=12,
                     color=ft.Colors.GREEN_700
                 ),
-                ft.Text(
-                    f"Fuzzy Match Time: {self.fuzzy_match_time}", 
-                    data="fuzzy_time",
-                    color=ft.Colors.ORANGE_700
-                )
-            ]),
-            visible=bool(self.exact_match_time or self.fuzzy_match_time),
-            padding=15,
-            border_radius=12,
-            bgcolor=ft.Colors.BLUE_GREY_50,  # Changed from BLUE_GREY_50
-            border=ft.border.all(1, ft.Colors.BLUE_GREY_200)
+            ], tight=True),
+            padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            bgcolor=ft.Colors.BLUE_50,
+            border_radius=6,
+            visible=bool(self.search_results or self.exact_match_time),
+            margin=ft.margin.only(bottom=8)
         )
         
-        # Results container
-        results_container = ft.ListView(
-            expand=True,
-            spacing=10,
-            padding=10,
-            controls=[CVCard(result, self.on_summary_click, self.on_view_cv_click) 
-                     for result in self.search_results]
-        )
+        # Results ListView - This is the main focus area
+        if self.search_results:
+            results_content = ft.ListView(
+                controls=[CVCard(result, self.on_summary_click, self.on_view_cv_click) 
+                         for result in self.search_results],
+                spacing=0,
+                padding=ft.padding.symmetric(horizontal=12, vertical=8),
+                expand=True,
+                auto_scroll=False
+            )
+        else:
+            results_content = ft.Container(
+                content=ft.Column([
+                    ft.Icon(ft.Icons.SEARCH_OFF, size=48, color=ft.Colors.GREY_400),
+                    ft.Text(
+                        "No results yet",
+                        size=16,
+                        color=ft.Colors.GREY_600,
+                        text_align=ft.TextAlign.CENTER
+                    ),
+                    ft.Text(
+                        "Enter keywords and click Search to find matching CVs",
+                        size=12,
+                        color=ft.Colors.GREY_500,
+                        text_align=ft.TextAlign.CENTER
+                    )
+                ], 
+                spacing=8,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                tight=True),
+                alignment=ft.alignment.center,
+                expand=True
+            )
         
-        # Layout utama
+        # Main layout - maximizing space for results
         main_content = ft.Column(
-            expand=True,
-            spacing=20,
             controls=[
-                # Header
+                # Compact header
                 ft.Container(
                     content=ft.Text(
-                        "CV Analyzer App",
-                        size=32,  # Increased from 28
+                        "CV Analyzer",
+                        size=24,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.INDIGO_800  # Changed from PRIMARY
+                        color=ft.Colors.WHITE
                     ),
                     alignment=ft.alignment.center,
-                    padding=20
+                    padding=ft.padding.symmetric(vertical=12),
+                    bgcolor=ft.Colors.INDIGO_700,
+                    border_radius=ft.border_radius.only(bottom_left=8, bottom_right=8)
                 ),
                 
-                # Input section
+                # Content area
                 ft.Container(
                     content=ft.Column([
-                        keywords_field,
-                        ft.Row([
-                            ft.Text(
-                                "Search Algorithm:", 
-                                weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.GREY_800
-                            ),
-                        ]),
-                        algorithm_radio,
-                        ft.Row([
-                            top_matches_dropdown,
-                            ft.Container(expand=True),
-                            progress_indicator,
-                            search_button
-                        ])
-                    ]),
-                    padding=20,
-                    border_radius=16,  # Increased from 12
-                    bgcolor=ft.Colors.WHITE,  # Changed from ON_SURFACE_VARIANT
-                    border=ft.border.all(2, ft.Colors.GREY_200),  # Thicker border
-                    shadow=ft.BoxShadow(
-                        spread_radius=1,
-                        blur_radius=4,
-                        color=ft.Colors.GREY_300,
-                        offset=ft.Offset(0, 2)
-                    )
-                ),
-                
-                # Summary section
-                summary_section,
-                
-                # Results section
-                ft.Container(
-                    content=ft.Column([
-                        ft.Text(
-                            f"Search Results ({len(self.search_results)} found)",
-                            size=20,  # Increased from 18
-                            weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.BLUE_GREY_800
-                        ) if self.search_results else ft.Text(
-                            "No results to display",
-                            color=ft.Colors.GREY_600
-                        ),
-                        ft.Divider(color=ft.Colors.GREY_300),
-                        results_container if self.search_results else ft.Container()
-                    ]),
-                    expand=True,
-                    padding=15,  # Increased from 10
-                    border_radius=16,  # Increased from 12
-                    bgcolor=ft.Colors.GREY_50,  # Changed from ON_SURFACE_VARIANT
-                    border=ft.border.all(1, ft.Colors.GREY_200)
+                        input_section,
+                        results_summary,
+                        # Results area - this takes most of the space
+                        ft.Container(
+                            content=results_content,
+                            expand=True,
+                            bgcolor=ft.Colors.GREY_50,
+                            border_radius=8,
+                            border=ft.border.all(1, ft.Colors.GREY_200)
+                        )
+                    ], 
+                    spacing=0,
+                    expand=True),
+                    padding=12,
+                    expand=True
                 )
-            ]
+            ],
+            spacing=0,
+            expand=True
         )
         
         return ft.View(
             "/search",
             [main_content],
-            appbar=ft.AppBar(
-                title=ft.Text("CV Analyzer"),
-                bgcolor=ft.Colors.INDIGO_700,  # Changed from PRIMARY
-                color=ft.Colors.WHITE
-            ),
-            bgcolor=ft.Colors.GREY_100  # Added background color
+            bgcolor=ft.Colors.GREY_100,
+            padding=0
         )
     
     def build_summary_view(self, applicant_id: int) -> ft.View:
@@ -391,16 +467,15 @@ class ATSApp:
             content=ft.Column([
                 ft.Text(
                     "Skills", 
-                    size=18,  # Increased from 16
+                    size=18,
                     weight=ft.FontWeight.BOLD,
                     color=ft.Colors.INDIGO_800
                 ),
-                # PERBAIKAN: Mengganti ft.Wrap dengan ft.Row(wrap=True)
                 ft.Row(
                     wrap=True,
                     controls=[
                         ft.Chip(
-                            label=ft.Text(skill, color=ft.Colors.WHITE),
+                            label=ft.Text(skill, color=ft.Colors.BLACK),
                             bgcolor=ft.Colors.BLUE_600,
                             selected_color=ft.Colors.BLUE_700
                         ) for skill in (applicant.skills or ["Python", "Data Analysis", "Machine Learning"])
@@ -409,7 +484,7 @@ class ATSApp:
                     run_spacing=8
                 )
             ]),
-            padding=15,  # Increased from 10
+            padding=15,
             border_radius=12,
             bgcolor=ft.Colors.BLUE_50,
             border=ft.border.all(1, ft.Colors.BLUE_200)
@@ -423,8 +498,8 @@ class ATSApp:
                 {"position": "Junior Analyst", "company": "Analytics Inc", "period": "2020-2022"}
             ],
             "position", "company", "period",
-            ft.Colors.GREEN_50,  # Background color
-            ft.Colors.GREEN_800  # Title color
+            ft.Colors.GREEN_50,
+            ft.Colors.GREEN_800
         )
         
         # Education section
@@ -435,8 +510,8 @@ class ATSApp:
                 {"degree": "Bachelor of Computer Science", "institution": "University XYZ", "period": "2014-2018"}
             ],
             "degree", "institution", "period",
-            ft.Colors.PURPLE_50,  # Background color
-            ft.Colors.PURPLE_800  # Title color
+            ft.Colors.PURPLE_50,
+            ft.Colors.PURPLE_800
         )
         
         # View CV button
@@ -445,7 +520,7 @@ class ATSApp:
             icon=ft.Icons.PICTURE_AS_PDF_OUTLINED,
             on_click=lambda _: self.on_view_cv_click(applicant.cv_path),
             style=ft.ButtonStyle(
-                bgcolor=ft.Colors.TEAL_600,  # Changed from PRIMARY
+                bgcolor=ft.Colors.TEAL_600,
                 color=ft.Colors.WHITE,
                 elevation=6,
                 shape=ft.StadiumBorder()
@@ -462,7 +537,7 @@ class ATSApp:
                     content=ft.Column([
                         ft.Text(
                             "Personal Information", 
-                            size=22,  # Increased from 20
+                            size=22,
                             weight=ft.FontWeight.BOLD,
                             color=ft.Colors.BLUE_GREY_800
                         ),
@@ -470,8 +545,8 @@ class ATSApp:
                         *info_rows
                     ]),
                     padding=20,
-                    border_radius=16,  # Increased from 12
-                    bgcolor=ft.Colors.WHITE,  # Changed from ON_SURFACE_VARIANT
+                    border_radius=16,
+                    bgcolor=ft.Colors.WHITE,
                     border=ft.border.all(1, ft.Colors.GREY_200),
                     shadow=ft.BoxShadow(
                         spread_radius=1,
@@ -504,7 +579,7 @@ class ATSApp:
             [main_content],
             appbar=ft.AppBar(
                 title=ft.Text("Applicant Summary"),
-                bgcolor=ft.Colors.INDIGO_700,  # Changed from PRIMARY
+                bgcolor=ft.Colors.INDIGO_700,
                 color=ft.Colors.WHITE,
                 leading=ft.IconButton(
                     ft.Icons.ARROW_BACK,
@@ -513,7 +588,7 @@ class ATSApp:
                     icon_color=ft.Colors.WHITE
                 )
             ),
-            bgcolor=ft.Colors.GREY_100  # Added background color
+            bgcolor=ft.Colors.GREY_100
         )
 
     
@@ -560,9 +635,9 @@ class ATSApp:
                             color=ft.Colors.BLUE_GREY_500
                         )
                     ]),
-                    padding=12,  # Increased from 10
+                    padding=12,
                     margin=5,
-                    border_radius=10,  # Increased from 8
+                    border_radius=10,
                     bgcolor=ft.Colors.WHITE,
                     border=ft.border.all(1, ft.Colors.GREY_200),
                     shadow=ft.BoxShadow(
@@ -578,14 +653,14 @@ class ATSApp:
             content=ft.Column([
                 ft.Text(
                     title, 
-                    size=18,  # Increased from 16
+                    size=18,
                     weight=ft.FontWeight.BOLD,
                     color=title_color
                 ),
                 ft.Column(controls=history_items)
             ]),
-            padding=15,  # Increased from 10
-            border_radius=12,  # Increased from 8
+            padding=15,
+            border_radius=12,
             bgcolor=bg_color,
             border=ft.border.all(1, ft.Colors.GREY_200)
         )
@@ -623,90 +698,67 @@ class ATSApp:
     def perform_search(self):
         """
         Melakukan pencarian CV - INTEGRATION POINT untuk algoritma pencarian
-        
-        Di sini akan diintegrasikan:
-        1. Algoritma KMP/Boyer-Moore untuk exact matching
-        2. Levenshtein Distance untuk fuzzy matching
-        3. Regex extraction untuk parsing CV
-        4. Database queries untuk data pelamar
         """
         self.is_searching = True
         self.update_search_ui()
         
+        self.page.update()
+        time.sleep(0.1)
+
+        found_applicants = []
+        
+        start_time = time.perf_counter()
+        
         try:
-            # INTEGRATION POINT: Panggil fungsi pencarian dari modul lain
-            # Contoh: from search_engine import perform_cv_search
-            # results = perform_cv_search(
-            #     keywords=self.search_keywords.split(','),
-            #     algorithm=self.selected_algorithm,
-            #     top_n=int(self.top_matches)
-            # )
+            keywords = [k.strip().lower() for k in self.search_keywords.split(',') if k.strip()]
+
+            # Lakukan Pencarian dengan KMP
+            if self.selected_algorithm == "KMP":
+                for applicant_data in DUMMY_CV_DATABASE:
+                    cv_text_lower = applicant_data["cv_text"].lower()
+                    
+                    matched_keywords_details = {}
+                    total_matches_count = 0
+                    
+                    for keyword in keywords:
+                        matches = kmp_search(cv_text_lower, keyword)
+                        if matches:
+                            count = len(matches)
+                            matched_keywords_details[keyword.capitalize()] = count
+                            total_matches_count += count
+                    
+                    if total_matches_count > 0:
+                        new_applicant = ApplicantData(
+                            id=applicant_data["id"],
+                            name=applicant_data["name"],
+                            cv_path=applicant_data["cv_path"],
+                            email=applicant_data["email"],
+                            phone=applicant_data["phone"],
+                            address=applicant_data["address"],
+                            birthdate=applicant_data["birthdate"],
+                            matched_keywords=matched_keywords_details,
+                            total_matches=total_matches_count
+                        )
+                        found_applicants.append(new_applicant)
+
+            # Urutkan hasil berdasarkan total match terbanyak
+            found_applicants.sort(key=lambda x: x.total_matches, reverse=True)
             
-            # Simulasi hasil pencarian untuk demo
-            self.simulate_search_results()
-            
-            # INTEGRATION POINT: Update waktu eksekusi dari hasil pencarian
-            self.exact_match_time = "15ms"  # Dari hasil algoritma
-            self.fuzzy_match_time = "45ms"  # Dari hasil algoritma
-            
+            # Ambil hasil sesuai 'top_matches' dan simpan
+            self.search_results = found_applicants[:int(self.top_matches)]
+
+            # Hentikan timer dan format waktu eksekusi
+            end_time = time.perf_counter()
+            execution_time_ms = (end_time - start_time) * 1000
+            self.exact_match_time = f"{execution_time_ms:.2f} ms"
+            self.fuzzy_match_time = "N/A"
+
         except Exception as ex:
             self.show_snackbar(f"Search error: {str(ex)}")
         finally:
             self.is_searching = False
             self.update_search_ui()
-    
-    def simulate_search_results(self):
-        """Simulasi hasil pencarian untuk demo"""
-        # Data simulasi - dalam implementasi nyata, ini akan datang dari database
-        sample_results = [
-            ApplicantData(
-                id=1,
-                name="John Doe",
-                cv_path="/path/to/cv1.pdf",
-                email="john.doe@email.com",
-                phone="+1234567890",
-                address="123 Main St, City",
-                birthdate="1990-01-15",
-                matched_keywords={"Python": 5, "Data Science": 3, "Machine Learning": 2},
-                total_matches=10
-            ),
-            ApplicantData(
-                id=2,
-                name="Jane Smith",
-                cv_path="/path/to/cv2.pdf",
-                email="jane.smith@email.com",
-                phone="+1234567891",
-                address="456 Oak Ave, Town",
-                birthdate="1988-05-22",
-                matched_keywords={"Python": 3, "React": 4, "JavaScript": 6},
-                total_matches=13
-            )
-        ]
-        
-        # Filter berdasarkan kata kunci pencarian
-        keywords = [k.strip().lower() for k in self.search_keywords.split(',')]
-        filtered_results = []
-        
-        for result in sample_results:
-            matched_keywords = {}
-            total_matches = 0
-            
-            for keyword in keywords:
-                for cv_keyword, count in result.matched_keywords.items():
-                    if keyword in cv_keyword.lower():
-                        matched_keywords[cv_keyword] = count
-                        total_matches += count
-            
-            if matched_keywords:
-                result.matched_keywords = matched_keywords
-                result.total_matches = total_matches
-                filtered_results.append(result)
-        
-        # Sort berdasarkan total matches
-        filtered_results.sort(key=lambda x: x.total_matches, reverse=True)
-        
-        # Limit hasil sesuai top_matches
-        self.search_results = filtered_results[:int(self.top_matches)]
+            self.page.update()
     
     def load_applicant_details(self, applicant: ApplicantData):
         """
@@ -723,8 +775,8 @@ class ATSApp:
         # applicant.skills = extracted_data.get('skills', [])
         # applicant.job_history = extracted_data.get('job_history', [])
         # applicant.education = extracted_data.get('education', [])
-        
         # Simulasi data untuk demo
+
         if not applicant.skills:
             applicant.skills = ["Python", "Data Analysis", "Machine Learning", "SQL", "Statistics"]
         
@@ -743,10 +795,10 @@ class ATSApp:
         """
         Membuka file PDF CV - INTEGRATION POINT untuk file handling
         """
+
         try:
             # INTEGRATION POINT: Validasi path file dari database
             # Dalam implementasi nyata, cv_path akan berisi path yang valid
-            
             if not os.path.exists(cv_path):
                 self.show_snackbar("CV file not found")
                 return
@@ -768,7 +820,16 @@ class ATSApp:
     # UI Helper Methods
     def update_search_ui(self):
         """Update UI berdasarkan status pencarian"""
-        self.page.go("/search")  # Refresh view
+        try:
+            if hasattr(self.page, 'views') and self.page.views:
+                current_view = self.page.views[-1]
+                if current_view.route == "/search":
+                    # Refresh search view dengan hasil terbaru
+                    self.page.views[-1] = self.build_search_view()
+            self.page.update()
+        except Exception as e:
+            print(f"UI update error: {e}")
+            self.page.update()
     
     def show_snackbar(self, message: str):
         """Menampilkan snackbar dengan pesan"""
