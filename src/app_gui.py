@@ -452,8 +452,10 @@ class ATSApp:
             return self.build_search_view()
         
         # Load detail informasi pelamar (simulasi)
+        # NOTE: ONLY FOR SIMULATION
         self.load_applicant_details(applicant)
-        
+        # TODO: Use real CV
+
         # Buat konten ringkasan
         info_rows = [
             self.create_info_row("Name", applicant.name),
@@ -715,7 +717,7 @@ class ATSApp:
 
             # Lakukan Pencarian dengan KMP
             if self.selected_algorithm == "KMP":
-                for applicant_data in DUMMY_CV_DATABASE:
+                for applicant_data in DUMMY_CV_DATABASE: # TODO: STILL USING DUMMY DATA
                     cv_text_lower = applicant_data["cv_text"].lower()
                     
                     matched_keywords_details = {}
@@ -741,7 +743,7 @@ class ATSApp:
                             total_matches=total_matches_count
                         )
                         found_applicants.append(new_applicant)
-            elif self.selected_algorithm == "AC":
+            elif self.selected_algorithm == "AC":   # TODO: STILL USING DUMMY DATA
                 ac_automaton = AhoCorasick(keywords)
                 for applicant_data in DUMMY_CV_DATABASE:
                     cv_text_lower = applicant_data["cv_text"].lower()
@@ -794,6 +796,7 @@ class ATSApp:
         """
         Load detail informasi pelamar - INTEGRATION POINT untuk ekstraksi data
         
+        TODO:
         Di sini akan diintegrasikan:
         1. Database queries untuk data lengkap pelamar
         2. Regex extraction untuk skills, job history, education dari CV
