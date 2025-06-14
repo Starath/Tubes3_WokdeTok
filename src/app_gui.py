@@ -93,7 +93,7 @@ class CVCard(ft.Card):
                     ft.Text(
                         f"Matched Keywords: {self.applicant_data.total_matches}",
                         size=14,
-                        color=ft.Colors.EMERALD_700,  # Changed from GREEN_700 to more vibrant
+                        color=ft.Colors.GREEN_700,  # Changed from GREEN_700 to more vibrant
                         weight=ft.FontWeight.W_600
                     ),
                     ft.Divider(height=1, color=ft.Colors.GREY_300),  # Changed from OUTLINE_VARIANT
@@ -395,15 +395,18 @@ class ATSApp:
                     weight=ft.FontWeight.BOLD,
                     color=ft.Colors.INDIGO_800
                 ),
-                ft.Wrap(
+                # PERBAIKAN: Mengganti ft.Wrap dengan ft.Row(wrap=True)
+                ft.Row(
+                    wrap=True,
                     controls=[
                         ft.Chip(
                             label=ft.Text(skill, color=ft.Colors.WHITE),
-                            bgcolor=ft.Colors.BLUE_600,  # Changed from BLUE_100
+                            bgcolor=ft.Colors.BLUE_600,
                             selected_color=ft.Colors.BLUE_700
                         ) for skill in (applicant.skills or ["Python", "Data Analysis", "Machine Learning"])
                     ],
-                    spacing=8
+                    spacing=8,
+                    run_spacing=8
                 )
             ]),
             padding=15,  # Increased from 10
@@ -420,8 +423,8 @@ class ATSApp:
                 {"position": "Junior Analyst", "company": "Analytics Inc", "period": "2020-2022"}
             ],
             "position", "company", "period",
-            ft.Colors.EMERALD_50,  # Background color
-            ft.Colors.EMERALD_800  # Title color
+            ft.Colors.GREEN_50,  # Background color
+            ft.Colors.GREEN_800  # Title color
         )
         
         # Education section
@@ -512,6 +515,7 @@ class ATSApp:
             ),
             bgcolor=ft.Colors.GREY_100  # Added background color
         )
+
     
     def create_info_row(self, label: str, value: str) -> ft.Row:
         """Helper untuk membuat baris informasi"""
@@ -553,7 +557,7 @@ class ATSApp:
                         ft.Text(
                             item.get(field3, ""), 
                             size=12, 
-                            color=ft.Colors.SLATE_500
+                            color=ft.Colors.BLUE_GREY_500
                         )
                     ]),
                     padding=12,  # Increased from 10
