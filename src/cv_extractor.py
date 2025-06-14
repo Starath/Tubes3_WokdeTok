@@ -2,6 +2,7 @@
 
 import re
 from typing import Dict, List, Any
+from pdf_extractor import extract_text_pypdf2
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """
@@ -14,6 +15,9 @@ def extract_text_from_pdf(pdf_path: str) -> str:
     Returns:
         str: Extracted text content from the PDF
     """
+    text = extract_text_pypdf2(pdf_path)
+    if text:
+        return text
     return ""
 
 def extract_summary(text: str) -> str:
@@ -150,6 +154,15 @@ def extract_all_info_from_pdf(pdf_path: str) -> Dict[str, Any]:
         Dict[str, Any]: Dictionary containing all extracted information
                         with keys:'summary', 'skills', 'experience', 'education'
     """
-    
-    return {}
-
+    full_text = extract_text_from_pdf(pdf_path)
+    summary = extract_summary(full_text)
+    skills = extract_skills(full_text)
+    experience = extract_experience(full_text)
+    education = extract_education(full_text)
+    data = {
+        "summary": summary,
+        "skills": skills,
+        "experience": experience,
+        "education": education
+    }
+    return data
