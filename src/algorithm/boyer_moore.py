@@ -1,4 +1,8 @@
 from typing import List
+from pdf_extractor import extract_text_pypdf2
+from KMP import kmp_search, compute_lps_array
+from aho_corasick import AhoCorasick
+import time
 
 def compute_l_function(pattern: str) -> dict[str, int]:
     """
@@ -36,7 +40,7 @@ def bm_search(text: str, pattern: str) -> List[int]:
         return []
     l_function = compute_l_function(pattern)
 
-    i = 0  # index for text
+    i = 0  #index for text
     
     matches: List[int] = []
 
@@ -60,29 +64,35 @@ def bm_search(text: str, pattern: str) -> List[int]:
 
 # For logic testing
 if __name__ == '__main__':
-    text1 = "ABABDABACDABABCABABC"
-    pattern1 = "ABABC"
-    matches1 = bm_search(text1, pattern1)
-    print(f"Text: '{text1}'")
+    '''
+    text1 = extract_text_pypdf2("test/DIGITAL-MEDIA/10005171.pdf").lower()
+    patterns = ["bronze", "silver", "gold", "master", "supervise"]
+    matches = []
+    x = time.time()
+    for i in patterns:
+        matches.append(kmp_search(text1, i))
+    y = time.time()
+    z = y - x
+    print(f"Time taken: {z:.6f} seconds")
+    for i, pattern1 in enumerate(patterns):
+        print(f"Pattern: '{pattern1}'")
+        print(f"L Function Array for '{pattern1}': {compute_lps_array(pattern1)}")
+        print(f"Pattern found at indices: {matches[i]}")
+        print("-" * 30)
+    '''
+    keywords1 = ["bronze", "silver", "gold", "master", "supervise"]
+    text1 = extract_text_pypdf2("test/DIGITAL-MEDIA/10005171.pdf").lower()
+    ac1 = AhoCorasick(keywords1)
+    x = time.time()
+    result1 = ac1.search(text1)
+    y = time.time()
+    print(f"\nText: {len(text1)}, Keywords: {keywords1}")
+    print(f"time : {y-x:.6f} seconds")
+    print(f"Result: {result1}")
+    '''
+    print(f"Time taken: {z:.6f} seconds")
+    print(f"Text: {len(text1)} Char long")
     print(f"Pattern: '{pattern1}'")
-    print(f"LPS Array for '{pattern1}': {compute_l_function(pattern1)}")
-    print(f"Pattern found at indices: {matches1}") # Expected: [10]
-    print("-" * 30)
-
-    text2 = "WOKWOKWOK"
-    pattern2 = "WOKWOK"
-    matches2 = bm_search(text2, pattern2)
-    print(f"Text: '{text2}'")
-    print(f"Pattern: '{pattern2}'")
-    print(f"LPS Array for '{pattern2}': {compute_l_function(pattern2)}")
-    print(f"Pattern found at indices: {matches2}") # Expected: [0, 1]
-    print("-" * 30)
-
-    text3 = "THIS IS A TEST TEXT"
-    pattern3 = "TESTING"
-    matches3 = bm_search(text3, pattern3)
-    print(f"Text: '{text3}'")
-    print(f"Pattern: '{pattern3}'")
-    print(f"LPS Array for '{pattern3}': {compute_l_function(pattern3)}")
-    print(f"Pattern found at indices: {matches3}") # Expected: []
-    print("-" * 30)
+    print(f"L Function Array for '{pattern1}': {compute_l_function(pattern1)}")
+    print(f"Pattern found at indices: {matches1}")
+    print("-" * 30)'''
