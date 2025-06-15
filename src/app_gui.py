@@ -4,21 +4,19 @@ import subprocess
 import platform
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
-import asyncio
 import time
 
 from algorithm.KMP import kmp_search
 from algorithm.boyer_moore import bm_search
 from algorithm.aho_corasick import AhoCorasick
 from algorithm.levenshtein import levenshtein_search
+from cv_extractor import extract_info_from_text
 from database import ATSDatabase
 from pdf_extractor import extract_text_pypdf2
-from cv_extractor import extract_info_from_text
 
 
 LEVENSHTEIN_THRESHOLD = 2
 
-# Data classes for data structure
 @dataclass
 class ApplicantData:
     id: int
@@ -36,7 +34,6 @@ class ApplicantData:
     job_history: List[Dict] = None
     education: List[Dict] = None
 
-# Custom Control for CV Card - Redesigned to be more compact
 class CVCard(ft.Card):
     def __init__(self, applicant_data: ApplicantData, on_summary_click, on_view_cv_click):
         super().__init__()
@@ -47,11 +44,9 @@ class CVCard(ft.Card):
         self.elevation = 2
         self.margin = ft.margin.only(bottom=8)
         
-        # Create card content
         self._build_content()
     
     def _build_content(self):
-        # Create keyword chips
         keyword_chips = []
         for keyword, count in self.applicant_data.matched_keywords.items():
             keyword_chips.append(
@@ -69,7 +64,6 @@ class CVCard(ft.Card):
                 )
             )
         
-        # Action buttons
         action_buttons = ft.Row(
             controls=[
                 ft.TextButton(
@@ -95,14 +89,12 @@ class CVCard(ft.Card):
             spacing=8
         )
         
-        # Main card content
         self.content = ft.Container(
             padding=12,
             content=ft.Column(
                 spacing=6,
                 tight=True,
                 controls=[
-                    # Header row with name and total matches
                     ft.Row(
                         controls=[
                             ft.Text(
@@ -127,7 +119,6 @@ class CVCard(ft.Card):
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                     ),
                     
-                    # Keywords in wrap format
                     ft.Container(
                         content=ft.Row(
                             wrap=True,
@@ -138,7 +129,6 @@ class CVCard(ft.Card):
                         margin=ft.margin.only(top=4, bottom=4)
                     ),
                     
-                    # Action buttons
                     action_buttons
                 ]
             ),
@@ -147,22 +137,23 @@ class CVCard(ft.Card):
             border=ft.border.all(1, ft.Colors.GREY_200)
         )
 
-# Main ATS application class
 class ATSApp:
     def __init__(self, page: ft.Page):
+        """
+        Initializes the main application class.
+        """
         self.page = page
         self.page.title = "CV Analyzer App"
         self.page.theme_mode = ft.ThemeMode.LIGHT
         self.page.window_width = 1200
         self.page.window_height = 800
-        self.page.padding = 0  # Remove default padding
+        self.page.padding = 0
         
         self.db = ATSDatabase()
         self.cv_database: List[Dict[str, Any]] = []
 
         self._load_cv_data_from_db()
         
-        # Application state
         self.search_keywords = ""
         self.selected_algorithm = "KMP"
         self.top_matches = "10"
@@ -170,23 +161,19 @@ class ATSApp:
         self.is_searching = False
         self.current_applicant: Optional[ApplicantData] = None
         
-        # Execution time
         self.exact_match_time = ""
         self.fuzzy_match_time = ""
         
-        # Setup routing
         self.page.on_route_change = self.route_change
         self.page.on_view_pop = self.view_pop
         
-        # Initialize views
         self.init_views()
         
-        # Start with the search page
         self.page.go("/search")
     
     def _load_cv_data_from_db(self):
         """
-        Fetches data from the database, extracts text from each PDF,
+        Fetches data from the database, constructs the full file path, extracts text from each PDF,
         and prepares it in an in-memory data structure for fast searching.
         """
         print("Loading CV data from database...")
@@ -194,30 +181,43 @@ class ATSApp:
         
         temp_database = []
         for record in applicant_records:
-            cv_path = record.get("cv_path")
+            relative_cv_path = record.get("cv_path")
             
-            if cv_path and os.path.exists(cv_path):
-                cv_text = extract_text_pypdf2(cv_path)
-                full_name = f"{record.get('first_name', '')} {record.get('last_name', '')}".strip()
+            if relative_cv_path:
+                full_cv_path = os.path.join("archive", "data", relative_cv_path)
 
-                temp_database.append({
-                    "id": record.get("applicant_id"),
-                    "name": full_name,
-                    "email": "", 
-                    "phone": record.get("phone_number"),
-                    "address": record.get("address"),
-                    "birthdate": str(record.get("date_of_birth", "")),
-                    "cv_path": cv_path,
-                    "cv_text": cv_text,
-                })
+                if os.path.exists(full_cv_path):
+                    cv_text = extract_text_pypdf2(full_cv_path)
+                    full_name = f"{record.get('first_name', '')} {record.get('last_name', '')}".strip()
+
+                    temp_database.append({
+                        "id": record.get("applicant_id"),
+                        "name": full_name,
+                        "email": "", 
+                        "phone": record.get("phone_number"),
+                        "address": record.get("address"),
+                        "birthdate": str(record.get("date_of_birth", "")),
+                        "cv_path": full_cv_path, # Store the full, correct path
+                        "cv_text": cv_text,
+                    })
+                else:
+                    print(f"Warning: CV file not found at constructed path for applicant_id {record.get('applicant_id')}: {full_cv_path}")
             else:
-                print(f"Warning: CV path not found or invalid for applicant_id {record.get('applicant_id')}: {cv_path}")
+                print(f"Warning: CV path is missing in the database for applicant_id {record.get('applicant_id')}")
 
         self.cv_database = temp_database
         print(f"Successfully loaded {len(self.cv_database)} CVs.")
+
+    def init_views(self):
+        """
+        Initializes all views for the application. This is a placeholder.
+        """
+        pass
     
     def route_change(self, route):
-        """Handler for route changes."""
+        """
+        Handles route changes to navigate between different views.
+        """
         self.page.views.clear()
         
         if self.page.route == "/search":
@@ -236,18 +236,19 @@ class ATSApp:
         self.page.update()
     
     def view_pop(self, view):
-        """Handler for view pop (back button)."""
+        """
+        Handles the back button action to pop the current view.
+        """
         self.page.views.pop()
         top_view = self.page.views[-1]
         self.page.go(top_view.route)
     
     def build_search_view(self) -> ft.View:
-        """Builds the main search view - Redesigned for space efficiency."""
-        
-        # Input section - more compact
+        """
+        Builds the main search view of the application.
+        """
         input_section = ft.Container(
             content=ft.Column([
-                # Keywords input
                 ft.TextField(
                     label="Search Keywords",
                     hint_text="e.g., Python, React, SQL",
@@ -260,9 +261,7 @@ class ATSApp:
                     height=50
                 ),
                 
-                # Controls row - algorithm, top matches, and search button
                 ft.Row([
-                    # Algorithm selection
                     ft.Container(
                         content=ft.RadioGroup(
                             content=ft.Row([
@@ -276,7 +275,6 @@ class ATSApp:
                         expand=True
                     ),
                     
-                    # Top matches dropdown
                     ft.Dropdown(
                         label="Top",
                         options=[
@@ -291,7 +289,6 @@ class ATSApp:
                         dense=True,
                     ),
                     
-                    # Search button with progress indicator
                     ft.Container(
                         content=ft.Stack([
                             ft.ElevatedButton(
@@ -325,7 +322,6 @@ class ATSApp:
             margin=ft.margin.only(bottom=8)
         )
         
-        # Results summary - very compact
         results_summary = ft.Container(
             content=ft.Row([
                 ft.Text(
@@ -357,7 +353,6 @@ class ATSApp:
             margin=ft.margin.only(bottom=8)
         )
         
-        # Results ListView - This is the main focus area
         if self.search_results:
             results_content = ft.ListView(
                 controls=[CVCard(result, self.on_summary_click, self.on_view_cv_click) 
@@ -391,10 +386,8 @@ class ATSApp:
                 expand=True
             )
         
-        # Main layout - maximizing space for results
         main_content = ft.Column(
             controls=[
-                # Compact header
                 ft.Container(
                     content=ft.Text(
                         "CV Analyzer",
@@ -408,12 +401,10 @@ class ATSApp:
                     border_radius=ft.border_radius.only(bottom_left=8, bottom_right=8)
                 ),
                 
-                # Content area
                 ft.Container(
                     content=ft.Column([
                         input_section,
                         results_summary,
-                        # Results area - this takes most of the space
                         ft.Container(
                             content=results_content,
                             expand=True,
@@ -440,8 +431,9 @@ class ATSApp:
         )
     
     def build_summary_view(self, applicant_id: int) -> ft.View:
-        """Builds the applicant summary view."""
-        # Find applicant data by ID
+        """
+        Builds the detailed summary view for a selected applicant.
+        """
         applicant = None
         for result in self.search_results:
             if result.id == applicant_id:
@@ -449,18 +441,15 @@ class ATSApp:
                 break
         
         if not applicant:
-            # If not found, return to search
             self.page.go("/search")
             return self.build_search_view()
         
-        # Load applicant detail information (simulation)
-        # NOTE: ONLY FOR SIMULATION
         self.load_applicant_details(applicant)
-        # TODO: Use real CV
+
         summary_section = ft.Container(
             content=ft.Column([
                 ft.Text("Summary", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.INDIGO_800),
-                ft.Text(applicant.summary, color=ft.Colors.BLUE_GREY_700, size=14)
+                ft.Text(applicant.summary or "Not Available", color=ft.Colors.BLUE_GREY_700, size=14)
             ]),
             padding=15,
             border_radius=12,
@@ -468,7 +457,6 @@ class ATSApp:
             border=ft.border.all(1, ft.Colors.INDIGO_200)
         )
 
-        # Create summary content
         info_rows = [
             self.create_info_row("Name", applicant.name),
             self.create_info_row("Birth Date", applicant.birthdate),
@@ -477,7 +465,6 @@ class ATSApp:
             self.create_info_row("Email", applicant.email)
         ]
         
-        # Skills section
         skills_section = ft.Container(
             content=ft.Column([
                 ft.Text(
@@ -490,10 +477,9 @@ class ATSApp:
                     wrap=True,
                     controls=[
                         ft.Chip(
-                            label=ft.Text(skill, color=ft.Colors.BLACK),
-                            bgcolor=ft.Colors.BLUE_600,
-                            selected_color=ft.Colors.BLUE_700
-                        ) for skill in (applicant.skills or ["TumPython", "Data Analysis", "Machine LearningBal"])
+                            label=ft.Text(skill, color=ft.Colors.WHITE),
+                            bgcolor=ft.Colors.BLUE_600
+                        ) for skill in (applicant.skills or [])
                     ],
                     spacing=8,
                     run_spacing=8
@@ -505,31 +491,22 @@ class ATSApp:
             border=ft.border.all(1, ft.Colors.BLUE_200)
         )
         
-        # Job History section
         job_history_section = self.create_history_section(
             "Job History",
-            applicant.job_history or [
-                {"position": "TumData Scientist", "company": "Tech Corp", "period": "2022-2024Bal"},
-                {"position": "TumJunior Analyst", "company": "Analytics Inc", "period": "2020-2022Bal"}
-            ],
+            applicant.job_history or [],
             "position", "company", "period",
             ft.Colors.GREEN_50,
             ft.Colors.GREEN_800
         )
         
-        # Education section
         education_section = self.create_history_section(
             "Education",
-            applicant.education or [
-                {"degree": "TumMaster of Data Science", "institution": "University ABC", "period": "2018-2020Bal"},
-                {"degree": "TumBachelor of Computer Science", "institution": "University XYZ", "period": "2014-2018Bal"}
-            ],
+            applicant.education or [],
             "degree", "institution", "period",
             ft.Colors.PURPLE_50,
             ft.Colors.PURPLE_800
         )
         
-        # View CV button
         view_cv_button = ft.ElevatedButton(
             text="View Full CV",
             icon=ft.Icons.PICTURE_AS_PDF_OUTLINED,
@@ -548,7 +525,6 @@ class ATSApp:
             scroll=ft.ScrollMode.AUTO,
             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
-                # Personal Information
                 ft.Container(
                     content=ft.Column([
                         ft.Text(
@@ -573,17 +549,10 @@ class ATSApp:
                 ),
                 
                 summary_section,
-                
-                # Skills
                 skills_section,
-                
-                # Job History
                 job_history_section,
-                
-                # Education
                 education_section,
                 
-                # Action button
                 ft.Container(
                     content=view_cv_button,
                     alignment=ft.alignment.center,
@@ -611,7 +580,9 @@ class ATSApp:
 
     
     def create_info_row(self, label: str, value: str) -> ft.Row:
-        """Helper to create an information row."""
+        """
+        Helper function to create a labeled information row.
+        """
         return ft.Row([
             ft.Container(
                 content=ft.Text(
@@ -632,7 +603,9 @@ class ATSApp:
                              field1: str, field2: str, field3: str,
                              bg_color=ft.Colors.GREEN_50,
                              title_color=ft.Colors.GREEN_800) -> ft.Container:
-        """Helper to create a history section."""
+        """
+        Helper function to create a section for job history or education.
+        """
         history_items = []
         for item in items:
             history_items.append(
@@ -683,21 +656,28 @@ class ATSApp:
             border=ft.border.all(1, ft.Colors.GREY_200)
         )
     
-    # Event Handlers
     def on_keywords_change(self, e):
-        """Handler for keyword changes."""
+        """
+        Handles the change event for the keywords input field.
+        """
         self.search_keywords = e.control.value
     
     def on_algorithm_change(self, e):
-        """Handler for algorithm changes."""
+        """
+        Handles the change event for the algorithm selection.
+        """
         self.selected_algorithm = e.control.value
     
     def on_top_matches_change(self, e):
-        """Handler for changing the number of top matches."""
+        """
+        Handles the change event for the top matches dropdown.
+        """
         self.top_matches = e.control.value
     
     def on_search_click(self, e):
-        """Handler for the search button click."""
+        """
+        Handles the click event for the search button.
+        """
         if not self.search_keywords.strip():
             self.show_snackbar("Please enter search keywords")
             return
@@ -705,26 +685,28 @@ class ATSApp:
         self.perform_search()
     
     def on_summary_click(self, applicant_id: int):
-        """Handler for the summary button click."""
+        """
+        Handles the click event for the summary button on a CV card.
+        """
         self.page.go(f"/summary/{applicant_id}")
     
     def on_view_cv_click(self, cv_path: str):
-        """Handler for the view CV button click."""
+        """
+        Handles the click event for the view CV button on a CV card.
+        """
         self.open_pdf_file(cv_path)
     
-    # Core Methods (Integration Points)
     def perform_search(self):
         """
-        Performs a CV search in two stages: Exact Match then Fuzzy Match.
+        Performs the CV search using exact and fuzzy matching algorithms.
         """
         self.is_searching = True
         self.exact_match_time = ""
         self.fuzzy_match_time = ""
         self.update_search_ui()
         self.page.update()
-        time.sleep(0.1) # Short pause for UI update
+        time.sleep(0.1)
 
-        # Using dictionary for easier update
         found_applicants_map: Dict[int, ApplicantData] = {}
         
         try:
@@ -733,7 +715,6 @@ class ATSApp:
                 self.show_snackbar("Keywords cannot be empty.")
                 return
 
-            # Exact Match (KMP, BM, Aho-Corasick)
             start_exact_time = time.perf_counter()
             found_keywords_exact = set()
 
@@ -743,7 +724,6 @@ class ATSApp:
             elif self.selected_algorithm == "BM":
                 search_function = bm_search
             
-            # Aho-Corasick handled separately  
             if self.selected_algorithm == "AC":
                 ac_automaton = AhoCorasick(keywords)
                 for applicant_data in self.cv_database:
@@ -763,7 +743,7 @@ class ATSApp:
                              found_applicants_map[applicant_data["id"]] = ApplicantData(id=applicant_data["id"], name=applicant_data["name"], cv_path=applicant_data["cv_path"], email=applicant_data["email"], phone=applicant_data["phone"], address=applicant_data["address"], birthdate=applicant_data["birthdate"], matched_keywords={}, total_matches=0)
                         found_applicants_map[applicant_data["id"]].matched_keywords.update(matched_keywords_details)
                         found_applicants_map[applicant_data["id"]].total_matches += total_matches_count
-            else: # KMP or BM
+            else:
                 for applicant_data in self.cv_database:
                     cv_text_lower = applicant_data["cv_text"].lower()
                     for keyword in keywords:
@@ -775,7 +755,6 @@ class ATSApp:
                             if applicant_data["id"] not in found_applicants_map:
                                 found_applicants_map[applicant_data["id"]] = ApplicantData(id=applicant_data["id"], name=applicant_data["name"], cv_path=applicant_data["cv_path"], email=applicant_data["email"], phone=applicant_data["phone"], address=applicant_data["address"], birthdate=applicant_data["birthdate"], matched_keywords={}, total_matches=0)
                             
-                            # Update keyword detail
                             applicant = found_applicants_map[applicant_data["id"]]
                             applicant.matched_keywords[keyword.capitalize()] = applicant.matched_keywords.get(keyword.capitalize(), 0) + count
                             applicant.total_matches += count
@@ -783,15 +762,13 @@ class ATSApp:
             end_exact_time = time.perf_counter()
             self.exact_match_time = f"{(end_exact_time - start_exact_time) * 1000:.2f} ms"
 
-            # Fuzzy Match (Levenshtein) for unfounded keyword
             unfound_keywords = [k for k in keywords if k not in found_keywords_exact]
             if unfound_keywords:
                 start_fuzzy_time = time.perf_counter()
                 
-                for applicant_data in DUMMY_CV_DATABASE:
+                for applicant_data in self.cv_database:
                     cv_text_lower = applicant_data["cv_text"].lower()
                     for keyword in unfound_keywords:
-                        # Use levenshtein_search
                         matches = levenshtein_search(cv_text_lower, keyword, LEVENSHTEIN_THRESHOLD)
                         if matches:
                             count = len(matches)
@@ -809,8 +786,6 @@ class ATSApp:
             else:
                  self.fuzzy_match_time = "N/A (all found)"
 
-
-            # Finalization
             final_results = list(found_applicants_map.values())
             final_results.sort(key=lambda x: x.total_matches, reverse=True)
             self.search_results = final_results[:int(self.top_matches)]
@@ -844,21 +819,17 @@ class ATSApp:
     
     def open_pdf_file(self, cv_path: str):
         """
-        Opens the CV PDF file - INTEGRATION POINT for file handling
+        Opens a PDF file using the default system viewer.
         """
-
         try:
-            # INTEGRATION POINT: Validate file path from database
-            # In a real implementation, cv_path will contain a valid path
             if not os.path.exists(cv_path):
                 self.show_snackbar("CV file not found")
                 return
             
-            # Open file based on operating system
             system = platform.system()
             if system == "Windows":
                 os.startfile(cv_path)
-            elif system == "Darwin":  # macOS
+            elif system == "Darwin":
                 subprocess.call(["open", cv_path])
             elif system == "Linux":
                 subprocess.call(["xdg-open", cv_path])
@@ -868,14 +839,14 @@ class ATSApp:
         except Exception as ex:
             self.show_snackbar(f"Error opening CV: {str(ex)}")
     
-    # UI Helper Methods
     def update_search_ui(self):
-        """Updates the UI based on the search status."""
+        """
+        Updates the search view UI based on the current state.
+        """
         try:
             if hasattr(self.page, 'views') and self.page.views:
                 current_view = self.page.views[-1]
                 if current_view.route == "/search":
-                    # Refresh search view with the latest results
                     self.page.views[-1] = self.build_search_view()
             self.page.update()
         except Exception as e:
@@ -883,7 +854,9 @@ class ATSApp:
             self.page.update()
     
     def show_snackbar(self, message: str):
-        """Displays a snackbar with a message."""
+        """
+        Displays a snackbar with a given message.
+        """
         snackbar = ft.SnackBar(
             content=ft.Text(message),
             action="OK"
@@ -892,9 +865,10 @@ class ATSApp:
         snackbar.open = True
         self.page.update()
 
-# Main function to run the application
 def main(page: ft.Page):
-    """Application entry point."""
+    """
+    The main entry point for the application.
+    """
     app = ATSApp(page)
 
     def on_window_event(e):

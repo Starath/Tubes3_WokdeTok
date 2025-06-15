@@ -1,5 +1,4 @@
 import mysql.connector
-import os
 
 class ATSDatabase:
     def __init__(self):
