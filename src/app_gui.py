@@ -8,8 +8,13 @@ import asyncio
 import time
 
 from algorithm.KMP import kmp_search
+from algorithm.boyer_moore import bm_search
 from algorithm.aho_corasick import AhoCorasick
+from algorithm.levenshtein import levenshtein_search
 from cv_extractor import extract_info_from_text
+
+
+LEVENSHTEIN_THRESHOLD = 2
 
 # (Tambahkan di bawah imports)
 # Dummy CV Database (menggantikan data simulasi yang ada)
@@ -221,11 +226,11 @@ class ATSApp:
         self.page.go("/search")
     
     def init_views(self):
-        """Inisialisasi semua views"""
+        """Initializes all views."""
         pass
     
     def route_change(self, route):
-        """Handler untuk perubahan route"""
+        """Handler for route changes."""
         self.page.views.clear()
         
         if self.page.route == "/search":
@@ -244,13 +249,13 @@ class ATSApp:
         self.page.update()
     
     def view_pop(self, view):
-        """Handler untuk pop view (tombol back)"""
+        """Handler for view pop (back button)."""
         self.page.views.pop()
         top_view = self.page.views[-1]
         self.page.go(top_view.route)
     
     def build_search_view(self) -> ft.View:
-        """Membangun tampilan pencarian utama - Redesigned untuk efisiensi ruang"""
+        """Builds the main search view - Redesigned for space efficiency."""
         
         # Input section - lebih compact
         input_section = ft.Container(
@@ -343,11 +348,20 @@ class ATSApp:
                     color=ft.Colors.GREY_800
                 ),
                 ft.Container(expand=True),
-                ft.Text(
-                    f"Time: {self.exact_match_time}" if self.exact_match_time else "",
-                    size=12,
-                    color=ft.Colors.GREEN_700
-                ),
+                ft.Column([
+                    ft.Text(
+                        f"Exact Match: {self.exact_match_time}" if self.exact_match_time else "",
+                        size=12,
+                        color=ft.Colors.GREEN_700,
+                        visible=bool(self.exact_match_time)
+                    ),
+                    ft.Text(
+                        f"Fuzzy Match: {self.fuzzy_match_time}" if self.fuzzy_match_time else "",
+                        size=12,
+                        color=ft.Colors.ORANGE_800,
+                        visible=bool(self.fuzzy_match_time)
+                    ),
+                ], spacing=2, horizontal_alignment=ft.CrossAxisAlignment.END)
             ], tight=True),
             padding=ft.padding.symmetric(horizontal=12, vertical=8),
             bgcolor=ft.Colors.BLUE_50,
@@ -439,7 +453,7 @@ class ATSApp:
         )
     
     def build_summary_view(self, applicant_id: int) -> ft.View:
-        """Membangun tampilan ringkasan pelamar"""
+        """Builds the applicant summary view."""
         # Cari data pelamar berdasarkan ID
         applicant = None
         for result in self.search_results:
@@ -610,7 +624,7 @@ class ATSApp:
 
     
     def create_info_row(self, label: str, value: str) -> ft.Row:
-        """Helper untuk membuat baris informasi"""
+        """Helper to create an information row."""
         return ft.Row([
             ft.Container(
                 content=ft.Text(
@@ -631,7 +645,7 @@ class ATSApp:
                              field1: str, field2: str, field3: str,
                              bg_color=ft.Colors.GREEN_50,
                              title_color=ft.Colors.GREEN_800) -> ft.Container:
-        """Helper untuk membuat section riwayat"""
+        """Helper to create a history section."""
         history_items = []
         for item in items:
             history_items.append(
@@ -684,19 +698,19 @@ class ATSApp:
     
     # Event Handlers
     def on_keywords_change(self, e):
-        """Handler untuk perubahan kata kunci"""
+        """Handler for keyword changes."""
         self.search_keywords = e.control.value
     
     def on_algorithm_change(self, e):
-        """Handler untuk perubahan algoritma"""
+        """Handler for algorithm changes."""
         self.selected_algorithm = e.control.value
     
     def on_top_matches_change(self, e):
-        """Handler untuk perubahan jumlah hasil teratas"""
+        """Handler for changing the number of top matches."""
         self.top_matches = e.control.value
     
     def on_search_click(self, e):
-        """Handler untuk tombol pencarian"""
+        """Handler for the search button click."""
         if not self.search_keywords.strip():
             self.show_snackbar("Please enter search keywords")
             return
@@ -704,130 +718,136 @@ class ATSApp:
         self.perform_search()
     
     def on_summary_click(self, applicant_id: int):
-        """Handler untuk tombol summary"""
+        """Handler for the summary button click."""
         self.page.go(f"/summary/{applicant_id}")
     
     def on_view_cv_click(self, cv_path: str):
-        """Handler untuk tombol view CV"""
+        """Handler for the view CV button click."""
         self.open_pdf_file(cv_path)
     
     # Core Methods (Integration Points)
     def perform_search(self):
         """
-        Melakukan pencarian CV - INTEGRATION POINT untuk algoritma pencarian
+        Performs a CV search in two stages: Exact Match then Fuzzy Match.
         """
         self.is_searching = True
+        self.exact_match_time = ""
+        self.fuzzy_match_time = ""
         self.update_search_ui()
-        
         self.page.update()
-        time.sleep(0.1)
+        time.sleep(0.1) # Jeda singkat untuk UI update
 
-        found_applicants = []
-        
-        start_time = time.perf_counter()
+        # Using dictionary for easier update
+        found_applicants_map: Dict[int, ApplicantData] = {}
         
         try:
             keywords = [k.strip().lower() for k in self.search_keywords.split(',') if k.strip()]
+            if not keywords:
+                self.show_snackbar("Keywords cannot be empty.")
+                return
 
-            # Lakukan Pencarian dengan KMP
+            # Exact Match (KMP, BM, Aho-Corasick)
+            start_exact_time = time.perf_counter()
+            found_keywords_exact = set()
+
+            search_function = None
             if self.selected_algorithm == "KMP":
-                for applicant_data in DUMMY_CV_DATABASE: # TODO: STILL USING DUMMY DATA
-                    cv_text_lower = applicant_data["cv_text"].lower()
-                    
-                    matched_keywords_details = {}
-                    total_matches_count = 0
-                    
-                    for keyword in keywords:
-                        matches = kmp_search(cv_text_lower, keyword)
-                        if matches:
-                            count = len(matches)
-                            matched_keywords_details[keyword.capitalize()] = count
-                            total_matches_count += count
-                    
-                    if total_matches_count > 0:
-                        new_applicant = ApplicantData(
-                            id=applicant_data["id"],
-                            name=applicant_data["name"],
-                            cv_path=applicant_data["cv_path"],
-                            email=applicant_data["email"],
-                            phone=applicant_data["phone"],
-                            address=applicant_data["address"],
-                            birthdate=applicant_data["birthdate"],
-                            matched_keywords=matched_keywords_details,
-                            total_matches=total_matches_count
-                        )
-                        found_applicants.append(new_applicant)
-            elif self.selected_algorithm == "AC":   # TODO: STILL USING DUMMY DATA
+                search_function = kmp_search
+            elif self.selected_algorithm == "BM":
+                search_function = bm_search
+            
+            # Aho-Corasick handled separately  
+            if self.selected_algorithm == "AC":
                 ac_automaton = AhoCorasick(keywords)
                 for applicant_data in DUMMY_CV_DATABASE:
                     cv_text_lower = applicant_data["cv_text"].lower()
+                    matches = ac_automaton.search(cv_text_lower)
                     
-                    # Perform search using Aho-Corasick
-                    ac_matches = ac_automaton.search(cv_text_lower) 
-                    
-                    matched_keywords_details = {}
-                    total_matches_count = 0
-                    
-                    for keyword, indices in ac_matches.items():
-                        count = len(indices)
-                        matched_keywords_details[keyword.capitalize()] = count
-                        total_matches_count += count
-                    
-                    if total_matches_count > 0:
-                        new_applicant = ApplicantData(
-                            id=applicant_data["id"],
-                            name=applicant_data["name"],
-                            cv_path=applicant_data["cv_path"],
-                            email=applicant_data["email"],
-                            phone=applicant_data["phone"],
-                            address=applicant_data["address"],
-                            birthdate=applicant_data["birthdate"],
-                            matched_keywords=matched_keywords_details,
-                            total_matches=total_matches_count
-                        )
-                        found_applicants.append(new_applicant)
+                    if matches:
+                        total_matches_count = 0
+                        matched_keywords_details = {}
+                        for keyword, indices in matches.items():
+                            count = len(indices)
+                            matched_keywords_details[keyword.capitalize()] = count
+                            total_matches_count += count
+                            found_keywords_exact.add(keyword)
+                        
+                        if applicant_data["id"] not in found_applicants_map:
+                             found_applicants_map[applicant_data["id"]] = ApplicantData(id=applicant_data["id"], name=applicant_data["name"], cv_path=applicant_data["cv_path"], email=applicant_data["email"], phone=applicant_data["phone"], address=applicant_data["address"], birthdate=applicant_data["birthdate"], matched_keywords={}, total_matches=0)
+                        found_applicants_map[applicant_data["id"]].matched_keywords.update(matched_keywords_details)
+                        found_applicants_map[applicant_data["id"]].total_matches += total_matches_count
+            else: # KMP or BM
+                for applicant_data in DUMMY_CV_DATABASE:
+                    cv_text_lower = applicant_data["cv_text"].lower()
+                    for keyword in keywords:
+                        matches = search_function(cv_text_lower, keyword)
+                        if matches:
+                            count = len(matches)
+                            found_keywords_exact.add(keyword)
+                            
+                            if applicant_data["id"] not in found_applicants_map:
+                                found_applicants_map[applicant_data["id"]] = ApplicantData(id=applicant_data["id"], name=applicant_data["name"], cv_path=applicant_data["cv_path"], email=applicant_data["email"], phone=applicant_data["phone"], address=applicant_data["address"], birthdate=applicant_data["birthdate"], matched_keywords={}, total_matches=0)
+                            
+                            # Update detail keyword
+                            applicant = found_applicants_map[applicant_data["id"]]
+                            applicant.matched_keywords[keyword.capitalize()] = applicant.matched_keywords.get(keyword.capitalize(), 0) + count
+                            applicant.total_matches += count
 
-            # Urutkan hasil berdasarkan total match terbanyak
-            found_applicants.sort(key=lambda x: x.total_matches, reverse=True)
-            
-            # Ambil hasil sesuai 'top_matches' dan simpan
-            self.search_results = found_applicants[:int(self.top_matches)]
+            end_exact_time = time.perf_counter()
+            self.exact_match_time = f"{(end_exact_time - start_exact_time) * 1000:.2f} ms"
 
-            # Hentikan timer dan format waktu eksekusi
-            end_time = time.perf_counter()
-            execution_time_ms = (end_time - start_time) * 1000
-            self.exact_match_time = f"{execution_time_ms:.2f} ms"
-            self.fuzzy_match_time = "N/A"
+            # Fuzzy Match (Levenshtein) for unfounded keyword
+            unfound_keywords = [k for k in keywords if k not in found_keywords_exact]
+            if unfound_keywords:
+                start_fuzzy_time = time.perf_counter()
+                
+                for applicant_data in DUMMY_CV_DATABASE:
+                    cv_text_lower = applicant_data["cv_text"].lower()
+                    for keyword in unfound_keywords:
+                        # Gunakan levenshtein_search
+                        matches = levenshtein_search(cv_text_lower, keyword, LEVENSHTEIN_THRESHOLD)
+                        if matches:
+                            count = len(matches)
+                            
+                            if applicant_data["id"] not in found_applicants_map:
+                                found_applicants_map[applicant_data["id"]] = ApplicantData(id=applicant_data["id"], name=applicant_data["name"], cv_path=applicant_data["cv_path"], email=applicant_data["email"], phone=applicant_data["phone"], address=applicant_data["address"], birthdate=applicant_data["birthdate"], matched_keywords={}, total_matches=0)
+                            
+                            applicant = found_applicants_map[applicant_data["id"]]
+                            fuzzy_keyword_label = f"{keyword.capitalize()} (fuzzy)"
+                            applicant.matched_keywords[fuzzy_keyword_label] = applicant.matched_keywords.get(fuzzy_keyword_label, 0) + count
+                            applicant.total_matches += count
+                
+                end_fuzzy_time = time.perf_counter()
+                self.fuzzy_match_time = f"{(end_fuzzy_time - start_fuzzy_time) * 1000:.2f} ms"
+            else:
+                 self.fuzzy_match_time = "N/A (all found)"
+
+
+            # Finalization
+            final_results = list(found_applicants_map.values())
+            final_results.sort(key=lambda x: x.total_matches, reverse=True)
+            self.search_results = final_results[:int(self.top_matches)]
 
         except Exception as ex:
             self.show_snackbar(f"Search error: {str(ex)}")
         finally:
             self.is_searching = False
             self.update_search_ui()
-            self.page.update()
     
     def load_applicant_details(self, applicant: ApplicantData):
         """
-        Load detail informasi pelamar - INTEGRATION POINT untuk ekstraksi data
+        Loads detailed applicant information - INTEGRATION POINT for data extraction
         
         TODO:
-        Di sini akan diintegrasikan:
-        1. Database queries untuk data lengkap pelamar
-        2. Regex extraction untuk skills, job history, education dari CV
-        3. PDF parsing untuk mendapatkan teks CV
+        1. Database queries for complete applicant data
+        2. Regex extraction for skills, job history, education from CV
+        3. PDF parsing to get CV text
         """
-        # INTEGRATION POINT: Panggil fungsi ekstraksi dari modul lain
-        # Contoh: from cv_extractor import extract_cv_info
-        # extracted_data = extract_cv_info(applicant.cv_path)
-        # applicant.skills = extracted_data.get('skills', [])
-        # applicant.job_history = extracted_data.get('job_history', [])
-        # applicant.education = extracted_data.get('education', [])
-        # Simulasi data untuk demo
 
         dummy_record = next((item for item in DUMMY_CV_DATABASE if item["id"] == applicant.id), None)
 
         if not dummy_record:
-            applicant.summary = "Data pelamar tidak ditemukan."
+            applicant.summary = "Applicant data not found."
             applicant.skills = []
             applicant.job_history = []
             applicant.education = []
@@ -846,7 +866,7 @@ class ATSApp:
     
     def open_pdf_file(self, cv_path: str):
         """
-        Membuka file PDF CV - INTEGRATION POINT untuk file handling
+        Opens the CV PDF file - INTEGRATION POINT for file handling
         """
 
         try:
@@ -872,7 +892,7 @@ class ATSApp:
     
     # UI Helper Methods
     def update_search_ui(self):
-        """Update UI berdasarkan status pencarian"""
+        """Updates the UI based on the search status."""
         try:
             if hasattr(self.page, 'views') and self.page.views:
                 current_view = self.page.views[-1]
@@ -885,7 +905,7 @@ class ATSApp:
             self.page.update()
     
     def show_snackbar(self, message: str):
-        """Menampilkan snackbar dengan pesan"""
+        """Displays a snackbar with a message."""
         snackbar = ft.SnackBar(
             content=ft.Text(message),
             action="OK"
@@ -896,7 +916,7 @@ class ATSApp:
 
 # Fungsi utama untuk menjalankan aplikasi
 def main(page: ft.Page):
-    """Entry point aplikasi"""
+    """Application entry point."""
     app = ATSApp(page)
 
 if __name__ == "__main__":

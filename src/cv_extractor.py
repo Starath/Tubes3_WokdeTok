@@ -98,7 +98,7 @@ def extract_education(text: str) -> List[Dict[str, str]]:
     """
     educations: List[Dict[str, str]] = []    # Looks for degree, major, university, and dates
     pattern = re.compile(
-        r'(B\.?Sc\.?|M\.?Sc\.?|Bachelor|Master|Sarjana|Ph\.?D)\s(?:of|in)?\s(.*?)\n(.*?University|.*?Institute of Technology|.*?Institut Teknologi.*?)\s*\n?\((.*?)\)',
+        r'(B\.?Sc\.?|M\.?Sc\.?|Bachelor|Master|Sarjana|Ph\.?D)\s(?:of|in)?\s(.*?)\n(.*?University|.*?Institute of Technology|.*?Institut Teknologi.*?|Universitas.*?|SMA.*?)\s*\n?\((.*?)\)',
         re.IGNORECASE | re.MULTILINE
     )
     matches = pattern.findall(text)
@@ -159,7 +159,7 @@ def extract_all_info_from_pdf(pdf_path: str) -> Dict[str, Any]:
     skills = extract_skills(full_text)
     experience = extract_experience(full_text)
     education = extract_education(full_text)
-    data = {
+    data: Dict[str, str | List[str] | List[Dict[str,str]]] = {
         "summary": summary,
         "skills": skills,
         "experience": experience,
