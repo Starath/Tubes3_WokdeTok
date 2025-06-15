@@ -1,6 +1,6 @@
 import PyPDF2
 
-def extract_text_pypdf2(pdf_path) -> str:
+def extract_text_pypdf2(pdf_path: str) -> str:
     """
     Extract text from PDF using PyPDF2
     args:
@@ -21,7 +21,7 @@ def extract_text_pypdf2(pdf_path) -> str:
                 
     except Exception as e:
         print(f"Error reading PDF: {e}")
-        return None
+        return ""
     
     return text.strip()
 

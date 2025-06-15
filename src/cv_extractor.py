@@ -159,7 +159,7 @@ def extract_all_info_from_pdf(pdf_path: str) -> Dict[str, Any]:
     skills = extract_skills(full_text)
     experience = extract_experience(full_text)
     education = extract_education(full_text)
-    data = {
+    data: Dict[str, str | List[str] | List[Dict[str,str]]] = {
         "summary": summary,
         "skills": skills,
         "experience": experience,

@@ -1,7 +1,6 @@
 from typing import List
-import PyPDF2
 
-def compute_l_function(pattern: str) -> dict:
+def compute_l_function(pattern: str) -> dict[str, int]:
     """
     Computes the last instance of a char in the pattern.
     Args:
@@ -11,8 +10,7 @@ def compute_l_function(pattern: str) -> dict:
         A List of integers representing the LPS array for the pattern.
     """
     assert(pattern != None)
-    m = len(pattern)
-    l_func = {}
+    l_func : dict[str, int]= {}
     for i, char in enumerate(pattern):
         l_func[char] = i
     return l_func
@@ -40,7 +38,7 @@ def bm_search(text: str, pattern: str) -> List[int]:
 
     i = 0  # index for text
     
-    matches = []
+    matches: List[int] = []
 
     while i <= n-m:
         j = m - 1  #index for pattern

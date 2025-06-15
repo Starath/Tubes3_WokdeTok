@@ -8,6 +8,7 @@ import asyncio
 import time
 
 from algorithm.KMP import kmp_search
+from algorithm.boyer_moore import bm_search
 from algorithm.aho_corasick import AhoCorasick
 from cv_extractor import extract_info_from_text
 
@@ -739,6 +740,33 @@ class ATSApp:
                     
                     for keyword in keywords:
                         matches = kmp_search(cv_text_lower, keyword)
+                        if matches:
+                            count = len(matches)
+                            matched_keywords_details[keyword.capitalize()] = count
+                            total_matches_count += count
+                    
+                    if total_matches_count > 0:
+                        new_applicant = ApplicantData(
+                            id=applicant_data["id"],
+                            name=applicant_data["name"],
+                            cv_path=applicant_data["cv_path"],
+                            email=applicant_data["email"],
+                            phone=applicant_data["phone"],
+                            address=applicant_data["address"],
+                            birthdate=applicant_data["birthdate"],
+                            matched_keywords=matched_keywords_details,
+                            total_matches=total_matches_count
+                        )
+                        found_applicants.append(new_applicant)
+            elif self.selected_algorithm == "BM":
+                for applicant_data in DUMMY_CV_DATABASE: # TODO: STILL USING DUMMY DATA
+                    cv_text_lower = applicant_data["cv_text"].lower()
+                    
+                    matched_keywords_details = {}
+                    total_matches_count = 0
+                    
+                    for keyword in keywords:
+                        matches = bm_search(cv_text_lower, keyword)
                         if matches:
                             count = len(matches)
                             matched_keywords_details[keyword.capitalize()] = count
