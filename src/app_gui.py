@@ -348,6 +348,8 @@ class ATSApp:
                     color=ft.Colors.GREY_800
                 ),
                 ft.Container(expand=True),
+                ft.Column([
+                    ft.Text(
                         f"Exact Match: {self.exact_match_time}" if self.exact_match_time else "",
                         size=12,
                         color=ft.Colors.GREEN_700,
