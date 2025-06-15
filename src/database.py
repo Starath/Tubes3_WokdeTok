@@ -2,6 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 import os
 from datetime import datetime
+from dotenv import load_dotenv
 import json
 import csv
 
@@ -16,14 +17,15 @@ class ApplicantDatabaseManager:
             user: MySQL username (default: root)
             password: MySQL password (default: empty)
         """
+        load_dotenv()
         self.config = {
-            'host': host,
-            'database': database,
-            'user': user,
-            'password': password,
-            'port': 3306,
-            'charset': 'utf8mb4',
-            'collation': 'utf8mb4_unicode_ci'
+            'host': os.getenv('MYSQL_HOST', 'localhost'),
+            'database': os.getenv('MYSQL_DATABASE', 'applicant_db'),
+            'user': os.getenv('MYSQL_USER', 'root'),
+            'password': os.getenv('MYSQL_PASSWORD', ''),
+            'port': int(os.getenv('MYSQL_PORT', '3306')),
+            'charset': os.getenv('MYSQL_CHARSET', 'utf8mb4'),
+            'collation': os.getenv('MYSQL_COLLATION', 'utf8mb4_unicode_ci')
         }
         self.connection = None
         self.database_name = database
@@ -74,9 +76,12 @@ class ApplicantDatabaseManager:
             
             # Check if ApplicantProfile table exists
             cursor.execute("SHOW TABLES LIKE 'ApplicantProfile'")
-            table_exists = cursor.fetchone()
+            applicant_table_exists = cursor.fetchone()
+
+            cursor.execute("SHOW TABLES LIKE 'ApplicationDetail'")
+            application_table_exists = cursor.fetchone()
             
-            if not table_exists:
+            if not applicant_table_exists or not application_table_exists:
                 print("Tables don't exist. Setting up database...")
                 self.setup_database()
                 self.seed_all_data()
@@ -128,7 +133,7 @@ class ApplicantDatabaseManager:
             
             CREATE TABLE ApplicationDetail (
                 detail_id INT AUTO_INCREMENT PRIMARY KEY,
-                applicant_id INT NOT None,
+                applicant_id INT NOT NULL,
                 application_role VARCHAR(100),
                 cv_path TEXT,
                 FOREIGN KEY (applicant_id) REFERENCES ApplicantProfile(applicant_id)
@@ -1007,7 +1012,7 @@ class ApplicantDatabaseManager:
         SELECT ad.detail_id, ad.applicant_id, ap.first_name, ap.last_name, ad.cv_path
         FROM ApplicationDetail ad
         JOIN ApplicantProfile ap ON ad.applicant_id = ap.applicant_id
-        WHERE ad.application_role IS None
+        WHERE ad.application_role IS NULL
         ORDER BY ad.detail_id
         """
         return self.execute_query(query)
@@ -1070,16 +1075,12 @@ class ApplicantDatabaseManager:
         except Exception as e:
             print(f"JSON export error: {e}")
             return None
-'''
+
 # Example Usage and Demo
 def main():
+    load_dotenv()
     # Initialize database manager
-    db = ApplicantDatabaseManager(
-        host='localhost',
-        database='applicant_db',
-        user='root',
-        password='your_password'  # Change this to your MySQL password
-    )
+    db = ApplicantDatabaseManager()
     
     # Connect to database (will auto-create and seed if needed)
     if not db.connect():
@@ -1168,4 +1169,3 @@ def role_analysis():
                 print(f"{row[0]}: {row[1]} applications")
         db.disconnect()
 
-'''

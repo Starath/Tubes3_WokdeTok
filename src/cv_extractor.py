@@ -2,7 +2,7 @@
 
 import re
 from typing import Dict, List, Any
-from algorithm.pdf_extractor import extract_text_pypdf2
+from pdf_extractor import extract_text_pypdf2
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """
