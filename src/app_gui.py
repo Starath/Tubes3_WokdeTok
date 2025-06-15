@@ -11,56 +11,12 @@ from algorithm.KMP import kmp_search
 from algorithm.boyer_moore import bm_search
 from algorithm.aho_corasick import AhoCorasick
 from algorithm.levenshtein import levenshtein_search
+from database import ATSDatabase
+from pdf_extractor import extract_text_pypdf2
 from cv_extractor import extract_info_from_text
 
 
 LEVENSHTEIN_THRESHOLD = 2
-
-# NOTE: Still using dummy for development
-DUMMY_CV_DATABASE = [
-    {
-        "id": 1,
-        "name": "Farrell Jabaar",
-        "cv_path": "/path/to/farrell_cv.pdf",
-        "email": "farrell.j@email.com", "phone": "081234567890", "address": "Bandung, Indonesia", "birthdate": "2003-05-10",
-        "cv_text": """
-        Farrell Jabaar - Data Scientist
-        Summary: Experienced in Python, SQL, and machine learning.
-        Skills: Python, TensorFlow, PyTorch, SQL, NoSQL, Data Visualization.
-        Experience:
-        - Data Scientist at Tech Corp (2022-Present). Developed machine learning models.
-        - Junior Analyst at Data Inc (2020-2022). Focused on data cleaning with Python.
-        """
-    },
-    {
-        "id": 2,
-        "name": "Aramazaya",
-        "cv_path": "/path/to/aramazaya_cv.pdf",
-        "email": "aramazaya.a@email.com", "phone": "081234567891", "address": "Jakarta, Indonesia", "birthdate": "2004-01-15",
-        "cv_text": """
-        Aramazaya - Full-Stack Developer
-        Summary: Proficient in React and Node.js, with a strong background in web development.
-        Skills: JavaScript, React, Node.js, Express, MongoDB, HTML, CSS.
-        Experience:
-        - Frontend Developer at Web Solutions (2021-Present). Building responsive UIs with React.
-        - Intern at Creative Agency (2020). Worked on various web projects.
-        """
-    },
-    {
-        "id": 3,
-        "name": "Athian Nugraha",
-        "cv_path": "/path/to/athian_cv.pdf",
-        "email": "athian.n@email.com", "phone": "081234567892", "address": "Surabaya, Indonesia", "birthdate": "2004-08-20",
-        "cv_text": """
-        Athian Nugraha - DevOps Engineer
-        Summary: Skilled in cloud infrastructure and automation using Python and Docker.
-        Skills: Python, Docker, Kubernetes, AWS, CI/CD, Terraform, SQL.
-        Experience:
-        - DevOps Engineer at Cloudify (2022-Present). Managing deployments and CI/CD pipelines.
-        - System Administrator at HostNet (2020-2022). Maintained server infrastructure.
-        """
-    }
-]
 
 # Data classes for data structure
 @dataclass
@@ -201,6 +157,11 @@ class ATSApp:
         self.page.window_height = 800
         self.page.padding = 0  # Remove default padding
         
+        self.db = ATSDatabase()
+        self.cv_database: List[Dict[str, Any]] = []
+
+        self._load_cv_data_from_db()
+        
         # Application state
         self.search_keywords = ""
         self.selected_algorithm = "KMP"
@@ -223,9 +184,37 @@ class ATSApp:
         # Start with the search page
         self.page.go("/search")
     
-    def init_views(self):
-        """Initializes all views."""
-        pass
+    def _load_cv_data_from_db(self):
+        """
+        Fetches data from the database, extracts text from each PDF,
+        and prepares it in an in-memory data structure for fast searching.
+        """
+        print("Loading CV data from database...")
+        applicant_records = self.db.get_all_applicant_data_joined()
+        
+        temp_database = []
+        for record in applicant_records:
+            cv_path = record.get("cv_path")
+            
+            if cv_path and os.path.exists(cv_path):
+                cv_text = extract_text_pypdf2(cv_path)
+                full_name = f"{record.get('first_name', '')} {record.get('last_name', '')}".strip()
+
+                temp_database.append({
+                    "id": record.get("applicant_id"),
+                    "name": full_name,
+                    "email": "", 
+                    "phone": record.get("phone_number"),
+                    "address": record.get("address"),
+                    "birthdate": str(record.get("date_of_birth", "")),
+                    "cv_path": cv_path,
+                    "cv_text": cv_text,
+                })
+            else:
+                print(f"Warning: CV path not found or invalid for applicant_id {record.get('applicant_id')}: {cv_path}")
+
+        self.cv_database = temp_database
+        print(f"Successfully loaded {len(self.cv_database)} CVs.")
     
     def route_change(self, route):
         """Handler for route changes."""
@@ -757,7 +746,7 @@ class ATSApp:
             # Aho-Corasick handled separately  
             if self.selected_algorithm == "AC":
                 ac_automaton = AhoCorasick(keywords)
-                for applicant_data in DUMMY_CV_DATABASE:
+                for applicant_data in self.cv_database:
                     cv_text_lower = applicant_data["cv_text"].lower()
                     matches = ac_automaton.search(cv_text_lower)
                     
@@ -775,7 +764,7 @@ class ATSApp:
                         found_applicants_map[applicant_data["id"]].matched_keywords.update(matched_keywords_details)
                         found_applicants_map[applicant_data["id"]].total_matches += total_matches_count
             else: # KMP or BM
-                for applicant_data in DUMMY_CV_DATABASE:
+                for applicant_data in self.cv_database:
                     cv_text_lower = applicant_data["cv_text"].lower()
                     for keyword in keywords:
                         matches = search_function(cv_text_lower, keyword)
@@ -834,30 +823,21 @@ class ATSApp:
     
     def load_applicant_details(self, applicant: ApplicantData):
         """
-        Loads detailed applicant information - INTEGRATION POINT for data extraction
-        
-        TODO:
-        1. Database queries for complete applicant data
-        2. Regex extraction for skills, job history, education from CV
-        3. PDF parsing to get CV text
+        Populates detailed information for an applicant by parsing their CV text.
         """
+        full_applicant_data = next((item for item in self.cv_database if item["id"] == applicant.id), None)
 
-        dummy_record = next((item for item in DUMMY_CV_DATABASE if item["id"] == applicant.id), None)
-
-        if not dummy_record:
+        if not full_applicant_data:
             applicant.summary = "Applicant data not found."
             applicant.skills = []
             applicant.job_history = []
             applicant.education = []
             return
 
-        # Get CV Text
-        cv_text = dummy_record.get("cv_text", "")
-
+        cv_text = full_applicant_data.get("cv_text", "")
         extracted_data = extract_info_from_text(cv_text)
         
-        # Update the applicant data
-        applicant.summary = extracted_data.get("summary", "Summary cant be extracted.")
+        applicant.summary = extracted_data.get("summary", "Summary could not be extracted.")
         applicant.skills = extracted_data.get("skills", [])
         applicant.job_history = extracted_data.get("experience", [])
         applicant.education = extracted_data.get("education", [])
@@ -916,6 +896,16 @@ class ATSApp:
 def main(page: ft.Page):
     """Application entry point."""
     app = ATSApp(page)
+
+    def on_window_event(e):
+        if e.data == "close":
+            print("Closing database connection...")
+            if app.db:
+                app.db.close()
+            page.window_destroy()
+
+    page.window_prevent_close = True
+    page.on_window_event = on_window_event
 
 if __name__ == "__main__":
     ft.app(target=main)

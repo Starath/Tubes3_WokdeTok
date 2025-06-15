@@ -123,6 +123,35 @@ class ATSDatabase:
         self.cursor.execute('DELETE FROM ApplicationDetail WHERE detail_id=%s', (detail_id,))
         self.conn.commit()
 
+    def get_all_applicant_data_joined(self):
+        query = """
+            SELECT
+                p.applicant_id,
+                p.first_name,
+                p.last_name,
+                p.date_of_birth,
+                p.address,
+                p.phone_number,
+                d.application_role,
+                d.cv_path
+            FROM
+                ApplicantProfile p
+            JOIN
+                ApplicationDetail d ON p.applicant_id = d.applicant_id
+        """
+        try:
+            if not self.conn.is_connected():
+                self.conn.reconnect()
+            
+            cursor = self.conn.cursor(dictionary=True)
+            cursor.execute(query)
+            results = cursor.fetchall()
+            cursor.close()
+            return results
+        except mysql.connector.Error as e:
+            print(f"Error fetching joined applicant data: {e}")
+            return []
+
     def close(self):
         self.conn.close()
 
