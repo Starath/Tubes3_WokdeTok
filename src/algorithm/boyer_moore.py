@@ -1,7 +1,5 @@
 from typing import List
 from pdf_extractor import extract_text_pypdf2
-from KMP import kmp_search, compute_lps_array
-from aho_corasick import AhoCorasick
 import time
 
 def compute_l_function(pattern: str) -> dict[str, int]:

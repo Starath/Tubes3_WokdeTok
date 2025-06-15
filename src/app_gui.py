@@ -11,7 +11,7 @@ from algorithm.boyer_moore import bm_search
 from algorithm.aho_corasick import AhoCorasick
 from algorithm.levenshtein import levenshtein_search
 from cv_extractor import extract_info_from_text
-from database import ATSDatabase
+from database import ApplicantDatabaseManager
 from pdf_extractor import extract_text_pypdf2
 
 
@@ -149,7 +149,7 @@ class ATSApp:
         self.page.window_height = 800
         self.page.padding = 0
         
-        self.db = ATSDatabase()
+        self.db = ApplicantDatabaseManager()
         self.cv_database: List[Dict[str, Any]] = []
 
         self._load_cv_data_from_db()
@@ -477,7 +477,7 @@ class ATSApp:
                     wrap=True,
                     controls=[
                         ft.Chip(
-                            label=ft.Text(skill, color=ft.Colors.WHITE),
+                            label=ft.Text(skill, color=ft.Colors.BLACK),
                             bgcolor=ft.Colors.BLUE_600
                         ) for skill in (applicant.skills or [])
                     ],

@@ -34,6 +34,8 @@ class ApplicantDatabaseManager:
         os.makedirs("exports", exist_ok=True)
         os.makedirs("reports", exist_ok=True)
     
+      
+
     def connect(self):
         """Connect to MySQL database, create if doesn't exist"""
         try:
@@ -973,7 +975,44 @@ class ApplicantDatabaseManager:
         ORDER BY ad.detail_id
         """
         return self.execute_query(query, (applicant_id,))
-    
+    def get_all_applicant_data_joined(self):
+        """Get all applicants with their application details joined"""
+        query = """
+            SELECT
+                p.applicant_id,
+                p.first_name,
+                p.last_name,
+                p.date_of_birth,
+                p.address,
+                p.phone_number,
+                d.application_role,
+                d.cv_path
+            FROM
+                ApplicantProfile p
+            JOIN
+                ApplicationDetail d ON p.applicant_id = d.applicant_id
+            ORDER BY p.applicant_id
+        """
+        
+        try:
+            # Check if connection exists and is active
+            if not self.connection or not self.connection.is_connected():
+                print("Connection lost. Attempting to reconnect...")
+                if not self.connect():
+                    print("Failed to reconnect to database")
+                    return []
+            
+            cursor = self.connection.cursor(dictionary=True)
+            cursor.execute(query)
+            results = cursor.fetchall()
+            cursor.close()
+            
+            print(f"Retrieved {len(results)} joined applicant records")
+            return results
+            
+        except Error as e:
+            print(f"Error fetching joined applicant data: {e}")
+            return []
     def add_application(self, applicant_id, application_role, cv_path):
         """Add new application"""
         query = """
