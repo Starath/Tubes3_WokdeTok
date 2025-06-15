@@ -38,7 +38,33 @@ cd Tubes3_WokdeTok
 ```bash
 pip install -r requirements.txt
 ```
+### 3. Masuk Ke MySQL
+#### ubuntu
+```bash
+sudo mysql -u root -p
+```
+
+#### windows
+```bash
+cd \path\to\your\MySQL\bin
+mysql -u root -p
+```
+
+### 4. Jalankan Command Berikut
+```
+CREATE USER 'app_user'@'localhost' IDENTIFIED BY 'bitchass';
+GRANT ALL PRIVILEGES ON *.* TO 'app_user'@'localhost';
+FLUSH PRIVILEGES;
+SELECT user, host FROM mysql.user WHERE user = 'app_user';
+EXIT;
+```
 
 ### Fitur Wajib
-
+- Queries by KMP, BM, Levenshtein
+- PDF Extracting
+- Regex Feature extraction
+- Summary and View CV Applicants
+- MySQL Database
+- Flet GUI
 ### Fitur Bonus
+- Aho-Chorasick
