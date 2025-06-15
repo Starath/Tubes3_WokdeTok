@@ -16,8 +16,7 @@ from cv_extractor import extract_info_from_text
 
 LEVENSHTEIN_THRESHOLD = 2
 
-# (Tambahkan di bawah imports)
-# Dummy CV Database (menggantikan data simulasi yang ada)
+# NOTE: Still using dummy for development
 DUMMY_CV_DATABASE = [
     {
         "id": 1,
@@ -63,7 +62,7 @@ DUMMY_CV_DATABASE = [
     }
 ]
 
-# Data classes untuk struktur data
+# Data classes for data structure
 @dataclass
 class ApplicantData:
     id: int
@@ -81,7 +80,7 @@ class ApplicantData:
     job_history: List[Dict] = None
     education: List[Dict] = None
 
-# Kontrol Kustom untuk Kartu CV - Redesigned untuk lebih compact
+# Custom Control for CV Card - Redesigned to be more compact
 class CVCard(ft.Card):
     def __init__(self, applicant_data: ApplicantData, on_summary_click, on_view_cv_click):
         super().__init__()
@@ -89,15 +88,14 @@ class CVCard(ft.Card):
         self.on_summary_click = on_summary_click
         self.on_view_cv_click = on_view_cv_click
         
-        # Styling kartu - lebih compact
         self.elevation = 2
         self.margin = ft.margin.only(bottom=8)
         
-        # Buat konten kartu
+        # Create card content
         self._build_content()
     
     def _build_content(self):
-        # Buat keyword chips yang lebih compact
+        # Create keyword chips
         keyword_chips = []
         for keyword, count in self.applicant_data.matched_keywords.items():
             keyword_chips.append(
@@ -115,7 +113,7 @@ class CVCard(ft.Card):
                 )
             )
         
-        # Tombol aksi - lebih kecil
+        # Action buttons
         action_buttons = ft.Row(
             controls=[
                 ft.TextButton(
@@ -141,14 +139,14 @@ class CVCard(ft.Card):
             spacing=8
         )
         
-        # Konten utama kartu - lebih compact
+        # Main card content
         self.content = ft.Container(
             padding=12,
             content=ft.Column(
                 spacing=6,
                 tight=True,
                 controls=[
-                    # Header row dengan nama dan total matches
+                    # Header row with name and total matches
                     ft.Row(
                         controls=[
                             ft.Text(
@@ -173,7 +171,7 @@ class CVCard(ft.Card):
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                     ),
                     
-                    # Keywords dalam format wrap
+                    # Keywords in wrap format
                     ft.Container(
                         content=ft.Row(
                             wrap=True,
@@ -193,7 +191,7 @@ class CVCard(ft.Card):
             border=ft.border.all(1, ft.Colors.GREY_200)
         )
 
-# Kelas utama aplikasi ATS
+# Main ATS application class
 class ATSApp:
     def __init__(self, page: ft.Page):
         self.page = page
@@ -203,7 +201,7 @@ class ATSApp:
         self.page.window_height = 800
         self.page.padding = 0  # Remove default padding
         
-        # State aplikasi
+        # Application state
         self.search_keywords = ""
         self.selected_algorithm = "KMP"
         self.top_matches = "10"
@@ -211,7 +209,7 @@ class ATSApp:
         self.is_searching = False
         self.current_applicant: Optional[ApplicantData] = None
         
-        # Waktu eksekusi
+        # Execution time
         self.exact_match_time = ""
         self.fuzzy_match_time = ""
         
@@ -219,10 +217,10 @@ class ATSApp:
         self.page.on_route_change = self.route_change
         self.page.on_view_pop = self.view_pop
         
-        # Inisialisasi views
+        # Initialize views
         self.init_views()
         
-        # Mulai dengan halaman pencarian
+        # Start with the search page
         self.page.go("/search")
     
     def init_views(self):
@@ -257,7 +255,7 @@ class ATSApp:
     def build_search_view(self) -> ft.View:
         """Builds the main search view - Redesigned for space efficiency."""
         
-        # Input section - lebih compact
+        # Input section - more compact
         input_section = ft.Container(
             content=ft.Column([
                 # Keywords input
@@ -454,7 +452,7 @@ class ATSApp:
     
     def build_summary_view(self, applicant_id: int) -> ft.View:
         """Builds the applicant summary view."""
-        # Cari data pelamar berdasarkan ID
+        # Find applicant data by ID
         applicant = None
         for result in self.search_results:
             if result.id == applicant_id:
@@ -462,11 +460,11 @@ class ATSApp:
                 break
         
         if not applicant:
-            # Jika tidak ditemukan, kembali ke pencarian
+            # If not found, return to search
             self.page.go("/search")
             return self.build_search_view()
         
-        # Load detail informasi pelamar (simulasi)
+        # Load applicant detail information (simulation)
         # NOTE: ONLY FOR SIMULATION
         self.load_applicant_details(applicant)
         # TODO: Use real CV
@@ -481,7 +479,7 @@ class ATSApp:
             border=ft.border.all(1, ft.Colors.INDIGO_200)
         )
 
-        # Buat konten ringkasan
+        # Create summary content
         info_rows = [
             self.create_info_row("Name", applicant.name),
             self.create_info_row("Birth Date", applicant.birthdate),
@@ -506,7 +504,7 @@ class ATSApp:
                             label=ft.Text(skill, color=ft.Colors.BLACK),
                             bgcolor=ft.Colors.BLUE_600,
                             selected_color=ft.Colors.BLUE_700
-                        ) for skill in (applicant.skills or ["Python", "Data Analysis", "Machine Learning"])
+                        ) for skill in (applicant.skills or ["TumPython", "Data Analysis", "Machine LearningBal"])
                     ],
                     spacing=8,
                     run_spacing=8
@@ -522,8 +520,8 @@ class ATSApp:
         job_history_section = self.create_history_section(
             "Job History",
             applicant.job_history or [
-                {"position": "Data Scientist", "company": "Tech Corp", "period": "2022-2024"},
-                {"position": "Junior Analyst", "company": "Analytics Inc", "period": "2020-2022"}
+                {"position": "TumData Scientist", "company": "Tech Corp", "period": "2022-2024Bal"},
+                {"position": "TumJunior Analyst", "company": "Analytics Inc", "period": "2020-2022Bal"}
             ],
             "position", "company", "period",
             ft.Colors.GREEN_50,
@@ -534,8 +532,8 @@ class ATSApp:
         education_section = self.create_history_section(
             "Education",
             applicant.education or [
-                {"degree": "Master of Data Science", "institution": "University ABC", "period": "2018-2020"},
-                {"degree": "Bachelor of Computer Science", "institution": "University XYZ", "period": "2014-2018"}
+                {"degree": "TumMaster of Data Science", "institution": "University ABC", "period": "2018-2020Bal"},
+                {"degree": "TumBachelor of Computer Science", "institution": "University XYZ", "period": "2014-2018Bal"}
             ],
             "degree", "institution", "period",
             ft.Colors.PURPLE_50,
@@ -735,7 +733,7 @@ class ATSApp:
         self.fuzzy_match_time = ""
         self.update_search_ui()
         self.page.update()
-        time.sleep(0.1) # Jeda singkat untuk UI update
+        time.sleep(0.1) # Short pause for UI update
 
         # Using dictionary for easier update
         found_applicants_map: Dict[int, ApplicantData] = {}
@@ -788,7 +786,7 @@ class ATSApp:
                             if applicant_data["id"] not in found_applicants_map:
                                 found_applicants_map[applicant_data["id"]] = ApplicantData(id=applicant_data["id"], name=applicant_data["name"], cv_path=applicant_data["cv_path"], email=applicant_data["email"], phone=applicant_data["phone"], address=applicant_data["address"], birthdate=applicant_data["birthdate"], matched_keywords={}, total_matches=0)
                             
-                            # Update detail keyword
+                            # Update keyword detail
                             applicant = found_applicants_map[applicant_data["id"]]
                             applicant.matched_keywords[keyword.capitalize()] = applicant.matched_keywords.get(keyword.capitalize(), 0) + count
                             applicant.total_matches += count
@@ -804,7 +802,7 @@ class ATSApp:
                 for applicant_data in DUMMY_CV_DATABASE:
                     cv_text_lower = applicant_data["cv_text"].lower()
                     for keyword in unfound_keywords:
-                        # Gunakan levenshtein_search
+                        # Use levenshtein_search
                         matches = levenshtein_search(cv_text_lower, keyword, LEVENSHTEIN_THRESHOLD)
                         if matches:
                             count = len(matches)
@@ -870,13 +868,13 @@ class ATSApp:
         """
 
         try:
-            # INTEGRATION POINT: Validasi path file dari database
-            # Dalam implementasi nyata, cv_path akan berisi path yang valid
+            # INTEGRATION POINT: Validate file path from database
+            # In a real implementation, cv_path will contain a valid path
             if not os.path.exists(cv_path):
                 self.show_snackbar("CV file not found")
                 return
             
-            # Buka file berdasarkan sistem operasi
+            # Open file based on operating system
             system = platform.system()
             if system == "Windows":
                 os.startfile(cv_path)
@@ -897,7 +895,7 @@ class ATSApp:
             if hasattr(self.page, 'views') and self.page.views:
                 current_view = self.page.views[-1]
                 if current_view.route == "/search":
-                    # Refresh search view dengan hasil terbaru
+                    # Refresh search view with the latest results
                     self.page.views[-1] = self.build_search_view()
             self.page.update()
         except Exception as e:
@@ -914,7 +912,7 @@ class ATSApp:
         snackbar.open = True
         self.page.update()
 
-# Fungsi utama untuk menjalankan aplikasi
+# Main function to run the application
 def main(page: ft.Page):
     """Application entry point."""
     app = ATSApp(page)
